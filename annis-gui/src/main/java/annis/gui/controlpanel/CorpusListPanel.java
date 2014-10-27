@@ -30,18 +30,16 @@ import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.GenericType;
 import com.sun.jersey.api.client.UniformInterfaceException;
 import com.sun.jersey.api.client.WebResource;
-import com.vaadin.data.Item;
 import com.vaadin.data.Property.ValueChangeEvent;
 import com.vaadin.data.Property.ValueChangeListener;
 import com.vaadin.data.util.BeanContainer;
-import com.vaadin.data.util.DefaultItemSorter;
 import com.vaadin.data.util.filter.SimpleStringFilter;
 import com.vaadin.event.Action;
 import com.vaadin.event.FieldEvents;
 import com.vaadin.event.ItemClickEvent;
-import com.vaadin.server.Page;
+import com.vaadin.server.FontAwesome;
+import com.vaadin.server.Resource;
 import static com.vaadin.server.Sizeable.UNITS_EM;
-import com.vaadin.server.ThemeResource;
 import com.vaadin.server.VaadinSession;
 import com.vaadin.shared.ui.label.ContentMode;
 import com.vaadin.ui.AbstractSelect;
@@ -60,9 +58,9 @@ import com.vaadin.ui.TextField;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Window;
-import com.vaadin.ui.themes.BaseTheme;
-import com.vaadin.ui.themes.ChameleonTheme;
+import com.vaadin.ui.themes.ValoTheme;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -81,10 +79,9 @@ public class CorpusListPanel extends VerticalLayout implements
   private static final org.slf4j.Logger log = LoggerFactory.
     getLogger(CorpusListPanel.class);
 
-  private static final ThemeResource INFO_ICON = new ThemeResource("images/info.gif");
+  private static final Resource INFO_ICON = FontAwesome.INFO_CIRCLE;
 
-  private static final ThemeResource DOC_ICON = new ThemeResource(
-    "images/document_ico.png");
+  private static final Resource DOC_ICON = FontAwesome.FILE_TEXT_O;
 
   public static final String ALL_CORPORA = "All";
 
@@ -140,6 +137,7 @@ public class CorpusListPanel extends VerticalLayout implements
     cbSelection.setDescription("Choose corpus selection set");
     cbSelection.setWidth("100%");
     cbSelection.setHeight("-1px");
+    cbSelection.addStyleName(ValoTheme.COMBOBOX_SMALL);
     cbSelection.setInputPrompt("Add new corpus selection set");
     cbSelection.setNullSelectionAllowed(false);
     cbSelection.setNewItemsAllowed(true);
@@ -206,6 +204,7 @@ public class CorpusListPanel extends VerticalLayout implements
     });
     txtFilter.setWidth("100%");
     txtFilter.setHeight("-1px");
+    txtFilter.addStyleName(ValoTheme.TEXTFIELD_SMALL);
     addComponent(txtFilter);
 
     tblCorpora = new Table();
@@ -233,7 +232,8 @@ public class CorpusListPanel extends VerticalLayout implements
     tblCorpora.setColumnExpandRatio("name", 0.6f);
     tblCorpora.setColumnExpandRatio("textCount", 0.15f);
     tblCorpora.setColumnExpandRatio("tokenCount", 0.25f);
-    tblCorpora.setColumnWidth("info", 19);
+    tblCorpora.addStyleName(ValoTheme.TABLE_SMALL);
+    tblCorpora.setPageLength(1);
     
     tblCorpora.addActionHandler((Action.Handler) this);
     tblCorpora.setImmediate(true);
@@ -251,7 +251,6 @@ public class CorpusListPanel extends VerticalLayout implements
       }
     });
     tblCorpora.setItemDescriptionGenerator(new TooltipGenerator());
-
     tblCorpora.addValueChangeListener(new CorpusTableChangedListener(finalThis));
 
     setExpandRatio(tblCorpora, 1.0f);
@@ -267,9 +266,9 @@ public class CorpusListPanel extends VerticalLayout implements
           Notification.Type.HUMANIZED_MESSAGE);
       }
     });
-    btReload.setIcon(new ThemeResource("images/tango-icons/16x16/view-refresh.png"));
+    btReload.setIcon(FontAwesome.REFRESH);
     btReload.setDescription("Reload corpus list");
-    btReload.addStyleName(ChameleonTheme.BUTTON_ICON_ONLY);
+    btReload.addStyleName(ValoTheme.BUTTON_ICON_ONLY);
 
     selectionLayout.addComponent(btReload);
     selectionLayout.setComponentAlignment(btReload, Alignment.MIDDLE_RIGHT);
@@ -618,6 +617,7 @@ public class CorpusListPanel extends VerticalLayout implements
   /**
    * Select the corpora
    * @param corpora Corpora to select
+   * @param delayScroll 
    */
   public void selectCorpora(Set<String> corpora)
   {
@@ -634,7 +634,9 @@ public class CorpusListPanel extends VerticalLayout implements
       tblCorpora.setValue(corpora);
       if (!corpora.isEmpty())
       {
-        tblCorpora.setCurrentPageFirstItemId(corpora.iterator().next());
+        String firstCorpusName = corpora.iterator().next();
+        int idx = corpusContainer.indexOfId(firstCorpusName);
+        tblCorpora.setCurrentPageFirstItemIndex(idx);
       }
     }
   }
@@ -646,7 +648,7 @@ public class CorpusListPanel extends VerticalLayout implements
   public Set<String> getSelectedCorpora()
   {
     // make a copy
-    return new HashSet<>((Set<String>) tblCorpora.getValue());
+    return new LinkedHashSet<>((Set<String>) tblCorpora.getValue());
   }
   
   /**
@@ -680,7 +682,7 @@ public class CorpusListPanel extends VerticalLayout implements
       if (ui.getDocBrowserController().docsAvailable(id))
       {
         Button l = new Button();
-        l.setStyleName(BaseTheme.BUTTON_LINK);
+        l.setStyleName(ValoTheme.BUTTON_BORDERLESS);
         l.setIcon(DOC_ICON);
 
         l.setDescription("opens the document browser for " + id);
@@ -707,7 +709,7 @@ public class CorpusListPanel extends VerticalLayout implements
     {
       final String id = (String) itemId;
       final Button l = new Button();
-      l.setStyleName(BaseTheme.BUTTON_LINK);
+      l.setStyleName(ValoTheme.BUTTON_BORDERLESS);
       l.setIcon(INFO_ICON);
       l.setDescription("show metadata and annotations for " + id);
       l.addClickListener(new Button.ClickListener()

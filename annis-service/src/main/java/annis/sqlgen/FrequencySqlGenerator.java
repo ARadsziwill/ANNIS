@@ -51,7 +51,7 @@ public class FrequencySqlGenerator extends AbstractSqlGenerator
 {
 
   private SolutionSqlGenerator solutionSqlGenerator;
-
+  
   @Override
   public FrequencyTable extractData(ResultSet rs) throws SQLException, DataAccessException
   {
@@ -74,6 +74,13 @@ public class FrequencySqlGenerator extends AbstractSqlGenerator
       for (int i = 1; i <= tupel.length; i++)
       {
         String colVal = rs.getString(i);
+        
+        String[] splitted = colVal.split(":", 3);
+        if(splitted.length > 0)
+        {
+          colVal = splitted[splitted.length-1];
+        }
+
         tupel[i - 1] = colVal;
       } // end for each column (except last "count" column) 
 
@@ -112,8 +119,6 @@ public class FrequencySqlGenerator extends AbstractSqlGenerator
   public String fromClause(QueryData queryData, List<QueryNode> alternative,
     String indent)
   {
-    TableAccessStrategy tas = tables(null);
-
     FrequencyTableQueryData ext;
     List<FrequencyTableQueryData> freqQueryData = queryData.getExtensions(
       FrequencyTableQueryData.class);
@@ -137,9 +142,10 @@ public class FrequencySqlGenerator extends AbstractSqlGenerator
 
       sb.append(indent).append(TABSTOP);
 
-      sb.append(TableAccessStrategy.partitionTableName(
-        tas.getTableAliases(), tas.getTablePartitioned(),
-        NODE_TABLE, queryData.getCorpusList()));
+      String factsSql = SelectedFactsFromClauseGenerator.selectedFactsSQL(
+        queryData.getCorpusList(), indent);
+      
+      sb.append(factsSql);
       sb.append(" AS v").append(i);
 
       if (itEntry.hasNext())
@@ -174,16 +180,14 @@ public class FrequencySqlGenerator extends AbstractSqlGenerator
       if (e.getType() == FrequencyTableEntryType.annotation)
       {
         sb
-          .append("(splitanno(")
           .append("v").append(i).append(".")
-          .append(tas.columnName(NODE_ANNOTATION_TABLE, "qannotext"))
-          .append("))[3]");
+          .append(tas.columnName(NODE_ANNOTATION_TABLE, "qannotext"));
       }
       else
       {
-        sb.append("v").append(i).append(".").append(
+        sb.append("('annis:tok:' || ").append("v").append(i).append(".").append(
           tas.columnName(NODE_TABLE,
-            "span"));
+            "span)"));
       }
       sb.append(" AS value").append(i).append(", ");
       i++;
@@ -242,9 +246,10 @@ public class FrequencySqlGenerator extends AbstractSqlGenerator
       else
       {
         // filter by selected key
-        conditions.add("(splitanno(v" + i + ".node_qannotext))[2] = '" + e.
-          getKey().replaceAll("'",
-            "''") + "'");
+        conditions.add("v" + i + ".node_annotext LIKE '"
+          + AnnotationConditionProvider.likeEscaper.escape(e.
+            getKey())
+          + ":%'");
         conditions.add("v" + i + ".n_na_sample IS TRUE");
 
       }

@@ -35,6 +35,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.sun.jersey.api.client.AsyncWebResource;
 import com.sun.jersey.api.client.UniformInterfaceException;
+import com.vaadin.server.FontAwesome;
 import com.vaadin.server.ThemeResource;
 import com.vaadin.server.VaadinSession;
 import com.vaadin.ui.Notification;
@@ -326,7 +327,7 @@ public class QueryController implements TabSheet.SelectedTabChangeListener,
     {
       newTab = ui.getMainTab().addTab(newResultView, caption);
       newTab.setClosable(true);
-      newTab.setIcon(new ThemeResource("images/tango-icons/16x16/system-search.png"));
+      newTab.setIcon(FontAwesome.SEARCH);
     }
     ui.getMainTab().setSelectedTab(newResultView);
     ui.notifiyQueryStarted();
@@ -335,7 +336,7 @@ public class QueryController implements TabSheet.SelectedTabChangeListener,
       lastQueryUUID));
 
     getResultPanels().put(lastQueryUUID, newResultView);
-    PollControl.runInBackground(500, ui, new ResultFetchJob(preparedQuery,
+    PollControl.runInBackground(500, 250, ui, new ResultFetchJob(preparedQuery,
       newResultView, ui, this));
 
     //
