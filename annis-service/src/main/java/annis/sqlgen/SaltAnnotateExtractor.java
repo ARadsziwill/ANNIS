@@ -449,7 +449,7 @@ public class SaltAnnotateExtractor implements AnnotateExtractor<SaltProject>
       allTextIDs.add(textRef);
       
     }
-    else if("c".equals(edgeType))
+    else if("c".equals(edgeType) && isToken == false)
     {
       node = testAndFixNonSpan(node, nodeByPre);
     }
@@ -461,7 +461,7 @@ public class SaltAnnotateExtractor implements AnnotateExtractor<SaltProject>
     String nodeAnnoName = stringValue(resultSet, NODE_ANNOTATION_TABLE, "name");
     if (!resultSet.wasNull())
     {
-      String fullName = (nodeAnnoNameSpace == null ? "" : (nodeAnnoNameSpace
+      String fullName = (nodeAnnoNameSpace == null || nodeAnnoNameSpace.isEmpty() ? "" : (nodeAnnoNameSpace
         + "::")) + nodeAnnoName;
       SAnnotation anno = node.getSAnnotation(fullName);
       if (anno == null)
