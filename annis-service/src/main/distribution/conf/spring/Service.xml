@@ -10,6 +10,7 @@
   <import resource="file:${annis.home}/conf/spring/SqlGenerator.xml" />
   <import resource="file:${annis.home}/conf/spring/Dao.xml"/>
   <import resource="Admin.xml" />
+  <import resource="Automation.xml" />
   
   <bean id="importWorker" class="annis.service.internal.ImportWorker" lazy-init="true">
     <property name="corpusAdmin" ref="corpusAdministration" />
@@ -56,5 +57,12 @@
   <!-- MetadataService -->
   <bean id="metadataService" class="annis.service.internal.MetadataServiceImpl" init-method="init" lazy-init="true">
     <property name="annisDao" ref="annisDao" />
+  </bean>
+  
+  <!-- Automation Service -->
+  <bean id="automationService" class="annis.automation.AutomationServiceImpl" init-method="init"
+  lazy-init="true">
+      <property name="scheduler" ref="annisScheduler" />
+      <property name="listener" ref="schedulerListener" />      
   </bean>
 </beans>

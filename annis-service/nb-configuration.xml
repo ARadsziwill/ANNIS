@@ -13,4 +13,10 @@ Without this configuration present, some functionality in the IDE may be limited
             <configuration id="Console" profiles=""/>
         </configurations>
     </config-data>
+    <spring-data xmlns="http://www.netbeans.org/ns/spring-data/1">
+        <config-files>
+            <config-file>src/main/distribution/conf/spring/Automation.xml</config-file>
+        </config-files>
+        <config-file-groups/>
+    </spring-data>
 </project-shared-configuration>

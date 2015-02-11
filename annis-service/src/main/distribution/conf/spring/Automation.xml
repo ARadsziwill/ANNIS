@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+
+       xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+	" default-lazy-init="true">
+
+  <import resource="Common.xml" />
+  <import resource="file:${annis.home}/conf/spring/SqlGenerator.xml" />
+  <import resource="file:${annis.home}/conf/spring/Dao.xml"/>
+       
+  <!-- AnnisScheduler -->
+  <bean id="annisScheduler" class="annis.automation.scheduling.AnnisSchedulerImpl" 
+        init-method="init" lazy-init="true">
+      <property name="annisDao" ref="annisDao" />
+      <constructor-arg value="${annis.automation-data-path}" />          
+  </bean>
+  
+  <!-- AutomatedQuerySchedulerListener -->
+  <bean id="schedulerListener" class="annis.automation.scheduling.AutomatedQuerySchedulerListener"
+        lazy-init="true">
+  </bean>
+</beans>

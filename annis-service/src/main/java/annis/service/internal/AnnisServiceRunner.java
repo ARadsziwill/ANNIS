@@ -17,6 +17,7 @@ package annis.service.internal;
 
 import annis.AnnisBaseRunner;
 import annis.AnnisXmlContextHelper;
+import annis.automation.AutomationServiceImpl;
 import annis.dao.AnnisDao;
 import annis.exceptions.AnnisException;
 import annis.utils.Utils;
@@ -253,6 +254,8 @@ public class AnnisServiceRunner extends AnnisBaseRunner
         DispatcherType.ERROR);
       context.addFilter(ShiroFilter.class, "/*", shiroDispatchers);
 
+        //workaround to automatically start the AutomationService Scheduler
+        ctx.getBean(AutomationServiceImpl.class);
     }
     catch (IllegalArgumentException ex)
     {
