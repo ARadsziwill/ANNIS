@@ -68,7 +68,7 @@ public class AutomationServiceImpl /*implements AutomationService */
    
    private AnnisScheduler scheduler; 
    private AutomatedQuerySchedulerListener listener;
-           
+       
    public void init() 
    {
        // add AutomatedQuerySchedulerListener
@@ -218,7 +218,7 @@ public class AutomationServiceImpl /*implements AutomationService */
    public Response updateAutoQuery(
            AutomatedQuery query,
    @PathParam("queryId") UUID id)
-   {      
+   {   
        //sanitycheck sameId?
        if (!id.equals(query.getId()))
        {

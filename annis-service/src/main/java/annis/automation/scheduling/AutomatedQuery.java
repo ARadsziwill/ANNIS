@@ -15,12 +15,17 @@
  */
 package annis.automation.scheduling;
 
+import annis.adapter.UUIDAdapter;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 /**
  * A POJO representing an automated Query 
@@ -28,17 +33,33 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 
 @XmlRootElement
+@XmlAccessorType(XmlAccessType.NONE)
 public class AutomatedQuery implements Serializable
 {
-    private final UUID id;
-    private String query;
-    private List<String> corpora;
+    @XmlAttribute
     private String description;
+    @XmlAttribute
     private String owner;
-    private boolean isOwnerGroup; 
+    @XmlAttribute
+    private String query;
+    @XmlAttribute
     private String schedulingPattern;
-    private boolean isActive;
-           
+    
+    @XmlJavaTypeAdapter(UUIDAdapter.class)
+    @XmlElement
+    private final UUID id;
+    @XmlElement(required = true)
+    private Boolean isOwnerGroup; 
+    @XmlElement(required = true)
+    private Boolean isActive;
+    
+    private List<String> corpora;
+    
+    
+    private AutomatedQuery()
+    {
+        this(null, null, null, null, null, null, null, null);
+    }
     
     public AutomatedQuery(String query,
             List<String> corpora,
@@ -62,8 +83,7 @@ public class AutomatedQuery implements Serializable
     public AutomatedQuery(String query, List<String> corpusNames, String schedulingPattern, String description, String owner, boolean isOwnerGroup, boolean isActive) {
         this(query, corpusNames, schedulingPattern, description, owner, isOwnerGroup, isActive, UUID.randomUUID());
     }
-    
-    
+
   public UUID getId()
   {
       return this.id;
