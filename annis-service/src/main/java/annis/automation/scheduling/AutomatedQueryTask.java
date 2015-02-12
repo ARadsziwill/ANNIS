@@ -60,6 +60,7 @@ public abstract class AutomatedQueryTask extends Task implements Serializable {
     public final void execute(TaskExecutionContext tec) throws RuntimeException {
         if (query.getIsActive())
         {
+            log.info("Excuting Query:" + this.getQuery().getId());
             String result = doExecute(tec);
             if (tec.getScheduler() instanceof AnnisScheduler)
             {
