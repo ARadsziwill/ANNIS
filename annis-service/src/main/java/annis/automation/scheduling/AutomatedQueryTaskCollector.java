@@ -91,13 +91,21 @@ public class AutomatedQueryTaskCollector implements TaskCollector
     
     private void renewCache()
     {
-        for (int i = 0; i < cache.size(); i++)
-        {
-            cache.remove(i);
-        }
+        lock.writeLock().lock();
+        try {
+            //clear cache
+            while (cache.size() > 0)
+            {
+                cache.remove(cache.size() - 1);
+            }
         for (AutomatedQueryTask task : tasks.values())
+            {
+                cache.add(new SchedulingPattern(task.getQuery().getSchedulingPattern()), task);
+            }
+        } 
+        finally
         {
-            cache.add(new SchedulingPattern(task.getQuery().getSchedulingPattern()), task);
+            lock.writeLock().unlock();
         }
     }
     
