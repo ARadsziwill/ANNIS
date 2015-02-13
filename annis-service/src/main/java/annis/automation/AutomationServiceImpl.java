@@ -33,6 +33,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -159,11 +160,12 @@ public class AutomationServiceImpl /*implements AutomationService */
                "cron-style scheduling pattern");
        
        Subject subject = SecurityUtils.getSubject();
+       String username = (String) subject.getPrincipal();
        
        //set defaults
        if (owner == null)
        {
-           owner = (String) subject.getPrincipal();
+           owner = username;
            isGroup = false;
        }
        isGroup = (isGroup == null)? false : isGroup;
@@ -173,16 +175,15 @@ public class AutomationServiceImpl /*implements AutomationService */
        //security checks
        if (isGroup)
        {
-           User user = getConfManager().getUser((String) subject.getPrincipal());
-           if (!user.getGroups().contains(owner))
-           {
-               throw new AuthorizationException("Can't schedule a group query "
-                       + "if user is not part of the group.");
-           }
            subject.checkPermission("schedule:write:group:" + owner);
        } else
        {
            subject.checkPermission("schedule:write:user");
+           if (!owner.equals(username))
+            {
+               throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).entity(
+                        "Owner in query not the same as login name.").build());
+            }           
        }
        //end security checks
        if (!SchedulingPattern.validate(schedulingPattern)) {
@@ -204,14 +205,13 @@ public class AutomationServiceImpl /*implements AutomationService */
       {
          return Response.created(null).build();
       }
-      return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(
-              "Could not save Query").build();
+      throw new WebApplicationException(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(
+              "Could not save Query").build());
    }
    
    /**
     * API - change an existing query 
     */
-   
    @PUT
    @Path("scheduledQueries/{queryId}")
    @Consumes("application/xml")
@@ -220,15 +220,51 @@ public class AutomationServiceImpl /*implements AutomationService */
    @PathParam("queryId") UUID id)
    {   
        //sanitycheck sameId?
-       if (!id.equals(query.getId()))
+       if (!id.equals(query.getId()) || !scheduler.idExists(id))
        {
-           return Response.status(Response.Status.BAD_REQUEST).entity(
-           "QueryId in Object is not the same as in path.").build();
+           throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).entity(
+           "QueryId in Object is not the same as in path.").build());
        }
        
-       checkPermissions(query);
+       AutomatedQuery old = scheduler.getQuery(id);       
        
-       if (scheduler.updateAutomatedQuery(query))
+       //check permissions
+       Subject subject = SecurityUtils.getSubject();
+       String username = (String) subject.getPrincipal(); 
+       log.info(username);
+       log.info(query.getOwner());
+       if (query.getIsOwnerGroup())
+        {
+            subject.checkPermission("schedule:writegroup:" + query.getOwner());
+            if (!getConfManager().getGroups().containsKey(query.getOwner()))
+            {
+               throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).entity(
+                        "No such group.").build());
+            }
+        }
+        else
+        {
+            subject.checkPermission("schedule:write:user");
+            if (!query.getOwner().equals(username))
+            {
+              return  Response.status(Response.Status.BAD_REQUEST).entity(
+                        "Owner in query not the same as login name.").build();
+            }
+        }        
+        if (old.getIsOwnerGroup())
+        {
+            subject.checkPermission("schedule:writegroup:" + old.getOwner());
+        }
+        else 
+        {            
+            if (!old.getOwner().equals(username))
+            {
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).entity(
+                        "Can't change other users's query").build());
+            }
+        }
+                
+       if (scheduler.updateAutomatedQuery(query, old))
        {
            return Response.ok().build();
        }
@@ -238,10 +274,38 @@ public class AutomationServiceImpl /*implements AutomationService */
    /**
     * API - delete a query from the list
     */
-   public Response deleteAutoQuery()
+   @DELETE
+   @Path("scheduledQueries/{queryId}")
+   public Response deleteAutoGroupQuery(
+   @PathParam("groupName") String groupName,
+           @PathParam("queryId") UUID queryId)
    {
-       //sanity check, allowed to delete the query?
-       throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+       if (scheduler.idExists(queryId))
+       {
+           //sanity check, allowed to delete the query?
+           AutomatedQuery toDelete = scheduler.getQuery(queryId);
+           
+           Subject subject = SecurityUtils.getSubject();
+           String username = (String) subject.getPrincipal();
+            if (toDelete.getIsOwnerGroup())
+            {
+                subject.checkPermission("schedule:writegroup:" + toDelete.getOwner());
+            } else
+            {
+                subject.checkPermission("schedule:write:user");
+                if (!toDelete.getOwner().equals(username))
+                {
+                    throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).entity(
+                        "Can't delete other users's query").build());
+                }
+            }
+            if (scheduler.deleteQuery(toDelete))
+            {
+                return Response.ok().build();
+            }
+       }
+       throw new WebApplicationException(Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(
+               "Could not delete query").build());
    }
    
    public Response getAutoQueryResults()

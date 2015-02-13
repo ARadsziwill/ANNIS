@@ -16,12 +16,14 @@
 package annis.automation.scheduling;
 
 import annis.dao.AnnisDao;
+import it.sauronsoftware.cron4j.TaskCollector;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,6 +105,65 @@ public class AnnisSchedulerImpl extends AnnisScheduler  {
        }
    }
 
+   public boolean deleteQuery(AutomatedQuery query)
+   {
+       AutomatedQueryTaskCollector collector = findCollectorForId(query.getId());
+       
+       if (collector != null)
+       {
+           return collector.deleteTask(query.getId());
+       }
+       return false;
+   }
+   
+   private AutomatedQueryTaskCollector findCollectorForId(UUID id)
+   {
+       int count = 0;
+       AutomatedQueryTaskCollector ref = null;
+       
+       for (AutomatedQueryTaskCollector col : userTaskCollectors.values())
+       {
+           if (col.containsId(id))
+           {
+               count++;
+               ref = col;
+           }
+       }
+       for (AutomatedQueryTaskCollector col : groupTaskCollectors.values())
+       {
+           if (col.containsId(id))
+           {
+               count++;
+               ref = col;
+           }
+       }
+       if (count > 1)
+       {
+          log.warn("Duplicate detected for Task with Id: " + id);
+       }
+       return ref;
+   }
+   
+   public AutomatedQuery getQuery(UUID id)
+   {
+       AutomatedQueryTaskCollector col = findCollectorForId(id);
+       if (col != null)
+       {
+           return col.getTask(id).getQuery();
+       }
+       throw new IllegalArgumentException("Id does not exist.");
+   }
+   
+   /**
+    * 
+    * @param id - The id to check
+    * @return true if the id is associated with any of the schedulers task collectors
+    */
+   public boolean idExists(UUID id)
+   {
+       return (findCollectorForId(id) == null)? false : true;
+   }
+   
    public List<AutomatedQueryResult> getResults()
    {
        return results.getResults();
@@ -129,7 +190,48 @@ public class AnnisSchedulerImpl extends AnnisScheduler  {
    }
    
    @Override
-   public boolean updateAutomatedQuery(AutomatedQuery query)
+   public boolean updateAutomatedQuery(AutomatedQuery query, AutomatedQuery old)
+   {
+       if ((!query.getIsOwnerGroup() ^ old.getIsOwnerGroup()) &&    //!xor  
+               old.getOwner().equals(query.getOwner()))
+            // both are user or both are group query  AND
+            // both owners are the same
+       {
+           log.info("Simple update.");
+           return updateAutomatedQuery(query);
+       }
+       else //xor
+            // one is user and one is group query  OR 
+            // owners are not the same
+       {
+           log.info("Update as Delete and Add.");
+           return updateAsDeleteAndAdd(query, old);
+       }
+   }
+   
+   private boolean updateAsDeleteAndAdd(AutomatedQuery query, AutomatedQuery old)
+   {
+       AutomatedQueryTaskCollector oldCollector = findCollectorForId(old.getId());
+               
+       try
+           {
+               if(oldCollector.deleteTask(old.getId()) && addAutomatedQuery(query))
+                    {
+                        return true;
+                    }
+                    else throw new Exception();
+            }
+            catch (Exception ex)
+            {
+                //try to revert
+                oldCollector.addTask(new AutomatedCountQueryTask(old));
+                deleteQuery(query);
+                return false;
+            }
+   }
+
+   
+   private boolean updateAutomatedQuery(AutomatedQuery query)
    {
        if (query.getIsOwnerGroup())
        {

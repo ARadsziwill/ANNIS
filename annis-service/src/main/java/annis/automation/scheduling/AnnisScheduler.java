@@ -18,6 +18,7 @@ package annis.automation.scheduling;
 import annis.dao.AnnisDao;
 import it.sauronsoftware.cron4j.Scheduler;
 import java.util.List;
+import java.util.UUID;
 
 /**
  *
@@ -30,7 +31,9 @@ public abstract class AnnisScheduler extends Scheduler {
     public abstract boolean addAutomatedQuery(AutomatedQuery query);
     public abstract void addResult(AutomatedQueryResult result);
     public abstract AnnisDao getAnnisDao();
-
-    public abstract boolean updateAutomatedQuery(AutomatedQuery query);
+    public abstract boolean idExists(UUID id);
+    public abstract AutomatedQuery getQuery(UUID id);
+    public abstract boolean deleteQuery(AutomatedQuery query);
+    public abstract boolean updateAutomatedQuery(AutomatedQuery query, AutomatedQuery old);
     
 }

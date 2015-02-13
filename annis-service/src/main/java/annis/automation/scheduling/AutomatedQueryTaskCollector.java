@@ -160,7 +160,7 @@ public class AutomatedQueryTaskCollector implements TaskCollector
         return false;
     }
     
-    public boolean deleteTask(AutomatedQueryTask task)
+    public boolean deleteTask(UUID id)
     {
         if (resourceFile != null)
         {
@@ -168,7 +168,7 @@ public class AutomatedQueryTaskCollector implements TaskCollector
             try
             {
                 readQueriesFromFile();
-                tasks.remove(task.getQuery().getId());
+                tasks.remove(id);
                 return writeQueriesFile();
             }
             finally
@@ -210,11 +210,22 @@ public class AutomatedQueryTaskCollector implements TaskCollector
     public List<AutomatedQuery> getQueries() 
     {
         checkConfiguration();
-        List<AutomatedQuery> result = new ArrayList<>();
+        int size = tasks.size();
+        List<AutomatedQuery> result = new ArrayList<>(size);
         for (AutomatedQueryTask task : tasks.values())
         { 
             result.add(task.getQuery());
         }
         return result;
+    }
+    
+    public AutomatedQueryTask getTask(UUID id)
+    {
+        return tasks.get(id);
+    }
+    
+    public boolean containsId(UUID id)
+    {
+        return tasks.containsKey(id);
     }
 }
