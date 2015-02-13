@@ -19,7 +19,7 @@ import annis.ql.parser.QueryData;
 import it.sauronsoftware.cron4j.Task;
 import it.sauronsoftware.cron4j.TaskExecutionContext;
 import java.io.Serializable;
-import java.util.Date;
+import org.joda.time.DateTime;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,7 +65,7 @@ public abstract class AutomatedQueryTask extends Task implements Serializable {
             if (tec.getScheduler() instanceof AnnisScheduler)
             {
                 AnnisScheduler scheduler = (AnnisScheduler) tec.getScheduler();
-                scheduler.addResult(new AutomatedQueryResult(query, result, new Date()));
+                scheduler.addResult(new AutomatedQueryResult(query, result, new DateTime()));
             }
         }
     }

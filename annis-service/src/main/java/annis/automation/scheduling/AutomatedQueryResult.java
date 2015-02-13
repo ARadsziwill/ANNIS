@@ -15,8 +15,12 @@
  */
 package annis.automation.scheduling;
 
+import annis.adapter.DateTimeAdapter;
 import java.io.Serializable;
-import java.util.Date;
+import org.joda.time.DateTime;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 /**
  * This class represents the result of an automated query execution. 
@@ -25,13 +29,22 @@ import java.util.Date;
  * 
  * @author Andreas
  */
+ @XmlRootElement
 public class AutomatedQueryResult implements Serializable{
    
+    @XmlElement(required = true)
     private final AutomatedQuery query;
-    private final Date executed;
+    @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    private final DateTime executed;
+    @XmlElement(required = true)
     private final String result;
 
-    public AutomatedQueryResult(AutomatedQuery query, String result, Date date) {
+    private AutomatedQueryResult()
+    {
+        this(null, null, null);
+    }
+            
+    public AutomatedQueryResult(AutomatedQuery query, String result, DateTime date) {
         this.executed = date;
         this.query = query;
         this.result = result;
@@ -41,12 +54,11 @@ public class AutomatedQueryResult implements Serializable{
         return query;
     }
 
-    public Date getExecuted() {
+    public DateTime getExecuted() {
         return executed;
     }
 
     public String getResult() {
         return result;
-    }
-    
+    }  
 }

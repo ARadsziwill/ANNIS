@@ -26,13 +26,18 @@ import java.util.UUID;
  */
 public abstract class AnnisScheduler extends Scheduler {
     
+    public abstract List<AutomatedQueryResult> getQueryResults(List<String> filters);
+    public abstract void addResult(AutomatedQueryResult result);
+    
     public abstract List<AutomatedQuery> getGroupQueries(String groupname);
     public abstract List<AutomatedQuery> getUserQueries(String username);
     public abstract boolean addAutomatedQuery(AutomatedQuery query);
-    public abstract void addResult(AutomatedQueryResult result);
+
     public abstract AnnisDao getAnnisDao();
+    
     public abstract boolean idExists(UUID id);
     public abstract AutomatedQuery getQuery(UUID id);
+    
     public abstract boolean deleteQuery(AutomatedQuery query);
     public abstract boolean updateAutomatedQuery(AutomatedQuery query, AutomatedQuery old);
     

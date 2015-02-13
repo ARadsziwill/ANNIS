@@ -16,6 +16,7 @@
 package annis.automation.scheduling;
 
 import annis.dao.AnnisDao;
+import com.google.common.collect.ImmutableList;
 import it.sauronsoftware.cron4j.TaskCollector;
 import java.io.File;
 import java.io.IOException;
@@ -347,6 +348,65 @@ public class AnnisSchedulerImpl extends AnnisScheduler  {
             return new LinkedList<>();
         }
         return collector.getQueries();
+    }
+    
+    @Override
+    public List<AutomatedQueryResult> getQueryResults(List<String> filters)
+    {        
+        List<AutomatedQueryResult> possibles = results.getResults();
+        
+        if (filters == null || filters.isEmpty())
+        {
+            return possibles;
+        }            
+        
+        String user = filters.get(0);
+        if (filters.size() > 1)
+        {
+            List<String> groups = filters.subList(1, filters.size());  
+            return filterUserAndGroupResults(possibles, user, groups);            
+        }
+        else //only filter by user
+        {
+            return filterUserResults(possibles, user);
+        }
+    }
+    
+    private List<AutomatedQueryResult> filterUserAndGroupResults(
+            List<AutomatedQueryResult> possibles, String user, List<String> groups)
+    {
+        List<AutomatedQueryResult> result = new LinkedList<>();
+        
+        for (AutomatedQueryResult candidate : possibles)
+        {
+            if(candidate.getQuery().getIsOwnerGroup() &&
+                    groups.contains(candidate.getQuery().getOwner()))
+            {
+                result.add(candidate);
+                continue; //with the next candidate as the next check will be false anyway
+            }
+            if (!candidate.getQuery().getIsOwnerGroup() && 
+                    user.equals(candidate.getQuery().getOwner()))
+            {
+                result.add(candidate);
+            }
+        }
+        return result;
+    }
+        
+    private List<AutomatedQueryResult> filterUserResults(List<AutomatedQueryResult> possibles, String username)
+    {
+        List<AutomatedQueryResult> result = new LinkedList<>();
+        
+        for (AutomatedQueryResult candidate : possibles)
+        {
+            if (!candidate.getQuery().getIsOwnerGroup() && 
+                    candidate.getQuery().getOwner().equals(username))
+            {
+                result.add(candidate);
+            }
+        }
+        return result;
     }
     
     public void setAnnisDao(AnnisDao annisDao)

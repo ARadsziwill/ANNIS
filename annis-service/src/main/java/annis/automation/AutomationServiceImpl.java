@@ -28,9 +28,11 @@ import annis.security.Group;
 import annis.security.User;
 import it.sauronsoftware.cron4j.SchedulingPattern;
 import java.security.Security;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.UUID;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -117,7 +119,7 @@ public class AutomationServiceImpl /*implements AutomationService */
    @GET
    @Path("scheduledQueries/groups")
    @Produces("application/xml")
-   public Response getGroupAutoQueries() 
+   public List<AutomatedQuery> getGroupAutoQueries() 
    {
        Subject user = SecurityUtils.getSubject();
        
@@ -128,13 +130,13 @@ public class AutomationServiceImpl /*implements AutomationService */
        
             for (String group : confManager.getGroups().keySet())
             {
-                if (user.isPermitted("schedule:read:group:"+group))
+                if (user.isPermitted("schedule:readgroup:"+group))
                 {
                     queries.addAll(scheduler.getGroupQueries(group));
                 }
             }
        }
-       return Response.ok(queries).type(MediaType.APPLICATION_XML_TYPE).build();
+       return queries;
       }
    //end ToDo
    
@@ -308,9 +310,39 @@ public class AutomationServiceImpl /*implements AutomationService */
                "Could not delete query").build());
    }
    
-   public Response getAutoQueryResults()
+   @GET
+   @Path("results")
+   @Produces("application/xml")
+   public List<AutomatedQueryResult> getAutoQueryResults()
    {
-       throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+       try{
+       List<String> filters = new ArrayList<>();
+       
+       Subject subject = SecurityUtils.getSubject();
+       String username = (String) subject.getPrincipal();
+       
+       filters.add(username);
+       
+       ANNISUserConfigurationManager confManager = getConfManager();
+       if (confManager != null && confManager.getUser(username) != null){    
+       
+            for (String group : confManager.getUser(username).getGroups())
+            {
+                if (subject.isPermitted("schedule:readResult:"+group))
+                {
+                    filters.add(group);
+                }
+            }
+       }
+       
+       return scheduler.getQueryResults(filters);
+       }
+       catch (NullPointerException nex)
+       {
+           System.err.println(nex.getMessage());
+           nex.printStackTrace();
+           return new ArrayList<>();
+       }
    }
      
    private ANNISUserConfigurationManager getConfManager()
