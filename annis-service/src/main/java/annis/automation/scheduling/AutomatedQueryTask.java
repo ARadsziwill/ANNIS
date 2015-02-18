@@ -16,6 +16,7 @@
 package annis.automation.scheduling;
 
 import annis.ql.parser.QueryData;
+import annis.utils.Utils;
 import it.sauronsoftware.cron4j.Task;
 import it.sauronsoftware.cron4j.TaskExecutionContext;
 import java.io.Serializable;
@@ -60,7 +61,16 @@ public abstract class AutomatedQueryTask extends Task implements Serializable {
     public final void execute(TaskExecutionContext tec) throws RuntimeException {
         if (query.getIsActive())
         {
-            log.info("Excuting Query:" + this.getQuery().getId());
+            //radomize execution start so queryResults are distinguishable by time
+            long delay = (long) Utils.getRandomInt(5000);
+            log.info("Excuting Query:" + this.getQuery().getId() + " in " + delay +"ms");
+            try {
+                Thread.sleep(delay); 
+            }
+            catch (InterruptedException ex)
+            {
+                ;
+            }
             String result = doExecute(tec);
             if (tec.getScheduler() instanceof AnnisScheduler)
             {

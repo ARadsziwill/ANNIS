@@ -15,6 +15,7 @@
  */
 package annis.utils;
 
+import java.util.Random;
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
@@ -30,6 +31,13 @@ public class Utils
   
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
+  private static Random rand = new Random();
+  
+  public static int getRandomInt(int max)
+  {
+      return rand.nextInt(max);
+  }
+  
   public static File getAnnisHomeLocation()
   {
     String annisHome = System.getProperty("annis.home");
