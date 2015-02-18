@@ -61,7 +61,6 @@ public class AutomatedQueryTaskCollector implements TaskCollector
     }
     
     @Override
-    //Todo add and use a cache
     public TaskTable getTasks() {
        checkConfiguration();
        return cache;

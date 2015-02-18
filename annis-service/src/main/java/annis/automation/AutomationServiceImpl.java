@@ -93,38 +93,21 @@ public class AutomationServiceImpl /*implements AutomationService */
    }
    
    
-   //ToDo combine the following two functions
    /**
     * API - get a list of all User's personal queries
     * @return 
     */
    @GET
-   @Path("scheduledQueries/user")
+   @Path("scheduledQueries")
    @Produces("application/xml")
    public List<AutomatedQuery> getUserAutoQueries() 
    {
-       Subject currentUser = SecurityUtils.getSubject();
-       currentUser.checkPermission("schedule:read:user");
-       String userName = (String) currentUser.getPrincipal();
-       
-       List<AutomatedQuery> queries = scheduler.getUserQueries(userName);
-       
-       return queries;
-   }
-   
-    /**
-    * API - get a list of all queries that are scheduled for groups I am part of
-    * @return 
-    */
-   @GET
-   @Path("scheduledQueries/groups")
-   @Produces("application/xml")
-   public List<AutomatedQuery> getGroupAutoQueries() 
-   {
        Subject user = SecurityUtils.getSubject();
-       
-       List<AutomatedQuery> queries = new LinkedList<>();
-       
+       user.checkPermission("schedule:read:user");
+       String userName = (String) user.getPrincipal();
+       //personal queries or an empty list
+       List<AutomatedQuery> queries = scheduler.getUserQueries(userName);
+       //group queries
        ANNISUserConfigurationManager confManager = getConfManager();
        if (confManager != null){    
        
@@ -136,10 +119,10 @@ public class AutomationServiceImpl /*implements AutomationService */
                 }
             }
        }
+       
        return queries;
-      }
-   //end ToDo
-   
+   }
+  
    /**
     * Api - add a Query for the User
     * 
@@ -278,9 +261,7 @@ public class AutomationServiceImpl /*implements AutomationService */
     */
    @DELETE
    @Path("scheduledQueries/{queryId}")
-   public Response deleteAutoGroupQuery(
-   @PathParam("groupName") String groupName,
-           @PathParam("queryId") UUID queryId)
+   public Response deleteAutoQuery(@PathParam("queryId") UUID queryId)
    {
        if (scheduler.idExists(queryId))
        {
@@ -400,24 +381,5 @@ public class AutomationServiceImpl /*implements AutomationService */
   {
       this.listener = listener;
   }
-
-  //TODO: permissions ok?
-    private void checkPermissions(AutomatedQuery query)
-    {
-        Subject subject = SecurityUtils.getSubject();
-        
-        if (query.getIsOwnerGroup())
-        {
-            User user = getConfManager().getUser((String) subject.getPrincipal());
-            if (!user.getGroups().contains(query.getOwner()))
-            {
-                throw new AuthorizationException("Can't schedule a group query "
-                       + "if user is not part of the group.");
-            }
-            subject.checkPermission("schedule:writegroup:" + query.getOwner());
-        } else
-        {
-            subject.checkPermission("schedule:write:user");
-        }
-    }
+  
 }
