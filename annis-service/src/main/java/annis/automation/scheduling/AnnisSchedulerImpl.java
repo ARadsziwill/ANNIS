@@ -21,10 +21,13 @@ import it.sauronsoftware.cron4j.TaskCollector;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -422,5 +425,31 @@ public class AnnisSchedulerImpl extends AnnisScheduler  {
 
     public String getBaseDir() {
         return baseDir;
+    }
+
+    @Override
+    public void deleteResults(DateTime date, Set<UUID> ids) 
+    {
+        List<AutomatedQueryResult> allResults = results.getResults();
+        
+        List<AutomatedQueryResult> toDelete = filter(allResults, ids, date);
+        
+        results.deleteAll(toDelete);
+    }
+    
+    private List<AutomatedQueryResult> filter(List<AutomatedQueryResult> source, Set<UUID> queryIds, DateTime date)
+    {
+        List<AutomatedQueryResult> filtered = new LinkedList<>();
+        
+        Iterator<AutomatedQueryResult> it = source.iterator();
+        while (it.hasNext())
+        {
+            AutomatedQueryResult aqr = it.next();
+            if (queryIds.contains(aqr.getQuery().getId()) && date.isAfter(aqr.getExecuted()))
+            {
+                filtered.add(aqr);
+            }
+        }
+        return filtered;
     }
 }

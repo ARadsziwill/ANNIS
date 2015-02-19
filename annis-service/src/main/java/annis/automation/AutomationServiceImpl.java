@@ -28,10 +28,15 @@ import annis.security.Group;
 import annis.security.User;
 import it.sauronsoftware.cron4j.SchedulingPattern;
 import java.security.Security;
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import javax.ws.rs.Consumes;
@@ -49,6 +54,7 @@ import javax.ws.rs.core.Response;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authz.AuthorizationException;
 import org.apache.shiro.subject.Subject;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -296,34 +302,89 @@ public class AutomationServiceImpl /*implements AutomationService */
    @Produces("application/xml")
    public List<AutomatedQueryResult> getAutoQueryResults()
    {
-       try{
-       List<String> filters = new ArrayList<>();
-       
+        List<String> filters = new ArrayList<>();
+
+        Subject subject = SecurityUtils.getSubject();
+        String username = (String) subject.getPrincipal();
+
+        filters.add(username);
+
+        ANNISUserConfigurationManager confManager = getConfManager();
+        if (confManager != null && confManager.getUser(username) != null){    
+
+             for (String group : confManager.getUser(username).getGroups())
+             {
+                 if (subject.isPermitted("schedule:readResult:"+group))
+                 {
+                     filters.add(group);
+                 }
+             }
+        }
+
+        return scheduler.getQueryResults(filters);
+    }
+   
+   /**   
+    * Deletes all AutomatedQueryResults whose "executed" date is older than the 
+    * specified date. Only deletes results of AutomatedQueries whose ids are 
+    * contained in the queryIds
+    * 
+    * @param compareDate The date to compare with
+    * @param queryIds The AutomatedQuery IDs whose results should be deleted
+    */
+   
+   @DELETE
+   @Path("results/olderThan")
+   public Response deleteResults(
+   @QueryParam("date") String compareDate,
+   @QueryParam("ids") String queryIds)
+   {
+       requiredParameter(compareDate, "date", "The date with which to compare");  
+       requiredParameter(queryIds, "ids", "The AutomatedQuery IDs whose results should be deleted");
        Subject subject = SecurityUtils.getSubject();
        String username = (String) subject.getPrincipal();
-       
-       filters.add(username);
-       
-       ANNISUserConfigurationManager confManager = getConfManager();
-       if (confManager != null && confManager.getUser(username) != null){    
-       
-            for (String group : confManager.getUser(username).getGroups())
+       try
+       {
+            DateTime date = DateTime.parse(compareDate);
+            Set<UUID> ids = splitIdsFromRaw(queryIds);
+            
+            Set<String> allowedGroups = new TreeSet<>();
+            
+            boolean notAuthorized = false;
+            
+            Iterator<UUID> it = ids.iterator();
+            while (it.hasNext())
             {
-                if (subject.isPermitted("schedule:readResult:"+group))
+                AutomatedQuery q = scheduler.getQuery(it.next());
+                if(!q.getIsOwnerGroup())
                 {
-                    filters.add(group);
+                    if(!username.equals(q.getOwner()))
+                    {
+                        it.remove();    //Not my Task
+                        notAuthorized = true;
+                    }   
+                }
+                else
+                {
+                    if(subject.isPermitted("schedule:deleteResult:" + q.getOwner()))
+                    {
+                        allowedGroups.add(q.getOwner());
+                    }
+                    else
+                    {
+                        it.remove();  //Not allowed in this group
+                        notAuthorized = true;
+                    }
                 }
             }
+            scheduler.deleteResults(date, ids);          
+            return notAuthorized? Response.ok("Some Results haven't been deleted.").build() : Response.ok().build();
        }
-       
-       return scheduler.getQueryResults(filters);
-       }
-       catch (NullPointerException nex)
+       catch (IllegalArgumentException ex)
        {
-           System.err.println(nex.getMessage());
-           nex.printStackTrace();
-           return new ArrayList<>();
-       }
+           throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).
+                   entity(ex).build());
+       }       
    }
      
    private ANNISUserConfigurationManager getConfManager()
@@ -375,6 +436,17 @@ public class AutomationServiceImpl /*implements AutomationService */
   private List<String> splitCorpusNamesFromRaw(String rawCorpusNames)
   {
     return Arrays.asList(rawCorpusNames.split(","));
+  }
+  
+  private Set<UUID> splitIdsFromRaw(String rawIds)
+  {
+      List<String> tmp = Arrays.asList(rawIds.split(","));
+      Set<UUID> result = new HashSet<>();
+      for(String id : tmp)
+      {
+          result.add(UUID.fromString(id));
+      }
+      return result;
   }
   
   public void setListener(AutomatedQuerySchedulerListener listener)

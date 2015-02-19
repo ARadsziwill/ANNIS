@@ -190,4 +190,23 @@ public class AutomatedQueryResultsFileHandler {
         }
         return false;
     }
+
+    void deleteAll(List<AutomatedQueryResult> toDelete) 
+    {
+        if (file != null)
+        {
+            lock.writeLock().lock();
+            
+            try
+            {
+                readFromFile();
+                cache.removeAll(toDelete);
+                writeToFile();
+            }
+            finally
+            {
+                lock.writeLock().unlock();
+            }
+        }
+    }
 }

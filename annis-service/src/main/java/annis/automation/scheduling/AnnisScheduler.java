@@ -18,7 +18,9 @@ package annis.automation.scheduling;
 import annis.dao.AnnisDao;
 import it.sauronsoftware.cron4j.Scheduler;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import org.joda.time.DateTime;
 
 /**
  *
@@ -40,5 +42,7 @@ public abstract class AnnisScheduler extends Scheduler {
     
     public abstract boolean deleteQuery(AutomatedQuery query);
     public abstract boolean updateAutomatedQuery(AutomatedQuery query, AutomatedQuery old);
+
+    public abstract void deleteResults(DateTime date, Set<UUID> ids);
     
 }
