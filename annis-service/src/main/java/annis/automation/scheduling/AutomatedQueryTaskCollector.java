@@ -15,6 +15,7 @@
  */
 package annis.automation.scheduling;
 
+import annis.automation.AutomatedQuery;
 import it.sauronsoftware.cron4j.SchedulingPattern;
 import it.sauronsoftware.cron4j.TaskCollector;
 import it.sauronsoftware.cron4j.TaskTable;

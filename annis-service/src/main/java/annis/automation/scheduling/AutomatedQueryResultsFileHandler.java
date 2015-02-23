@@ -15,6 +15,7 @@
  */
 package annis.automation.scheduling;
 
+import annis.automation.AutomatedQueryResult;
 import com.google.common.collect.ImmutableList;
 import java.io.EOFException;
 import java.io.File;

@@ -15,6 +15,8 @@
  */
 package annis.automation.scheduling;
 
+import annis.automation.AutomatedQuery;
+import annis.automation.AutomatedQueryResult;
 import annis.dao.AnnisDao;
 import it.sauronsoftware.cron4j.Scheduler;
 import java.util.List;

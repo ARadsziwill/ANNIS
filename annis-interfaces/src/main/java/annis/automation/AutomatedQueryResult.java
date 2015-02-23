@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package annis.automation.scheduling;
+package annis.automation;
 
 import annis.adapter.DateTimeAdapter;
 import java.io.Serializable;

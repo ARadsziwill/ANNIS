@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package annis.automation.scheduling;
+package annis.automation;
 
 import annis.adapter.UUIDAdapter;
 import java.io.Serializable;
@@ -156,6 +156,31 @@ public class AutomatedQuery implements Serializable
     public void setDescription(String description)
     {
         this.description = description;
+    }
+    
+    /**
+     * Checks for @code{null} properties and sets some default values if necessary
+     * 
+     * @param username the default username to set
+     * @throws IllegalArgumentException when the given username is null or empty
+     */
+    
+    public void setDefaults(String username) throws IllegalArgumentException
+    {
+      if (username == null || username.isEmpty())
+        {
+          throw new IllegalArgumentException("The default usernam may not be " +
+            "null or empty");
+        }
+                
+      if (owner == null || owner.isEmpty())
+      {
+           setOwner(username);
+           setIsOwnerGroup(false);
+       }
+       isOwnerGroup = (isOwnerGroup == null)? false : isOwnerGroup;
+       isActive = (isActive == null)? false : isActive;
+       description = (description == null)? "" : description;      
     }
     
     @Override

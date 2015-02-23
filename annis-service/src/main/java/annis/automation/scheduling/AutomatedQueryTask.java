@@ -15,6 +15,8 @@
  */
 package annis.automation.scheduling;
 
+import annis.automation.AutomatedQuery;
+import annis.automation.AutomatedQueryResult;
 import annis.ql.parser.QueryData;
 import annis.utils.Utils;
 import it.sauronsoftware.cron4j.Task;

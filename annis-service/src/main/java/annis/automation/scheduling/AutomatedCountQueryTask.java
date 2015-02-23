@@ -15,7 +15,7 @@
  */
 package annis.automation.scheduling;
 
-import annis.ql.parser.QueryData;
+import annis.automation.AutomatedQuery;
 import annis.service.objects.MatchAndDocumentCount;
 import it.sauronsoftware.cron4j.TaskExecutionContext;
 

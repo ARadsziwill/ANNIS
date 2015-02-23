@@ -17,24 +17,14 @@ package annis.automation;
 
 import annis.automation.scheduling.AnnisScheduler;
 import annis.automation.scheduling.AnnisSchedulerImpl;
-import annis.automation.scheduling.AutomatedCountQueryTask;
-import annis.automation.scheduling.AutomatedQueryResult;
-import annis.automation.scheduling.AutomatedQuery;
 import annis.automation.scheduling.AutomatedQuerySchedulerListener;
-import annis.ql.AqlParser;
 import annis.security.ANNISSecurityManager;
 import annis.security.ANNISUserConfigurationManager;
-import annis.security.Group;
-import annis.security.User;
 import it.sauronsoftware.cron4j.SchedulingPattern;
-import java.security.Security;
-import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -52,7 +42,6 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.shiro.SecurityUtils;
-import org.apache.shiro.authz.AuthorizationException;
 import org.apache.shiro.subject.Subject;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -135,63 +124,35 @@ public class AutomationServiceImpl /*implements AutomationService */
     */
    @POST
    @Path("scheduledQueries")
-   public Response createAutoQuery(
-        @QueryParam("q") String query,
-        @QueryParam("corpora") String rawCorpusNames,
-        @QueryParam("schedulingPattern") String schedulingPattern,
-        @QueryParam("description") String description,
-        @QueryParam("owner") String owner,
-        @QueryParam("isGroup") Boolean isGroup,
-        @QueryParam("isActive") Boolean isActive) 
+   @Consumes("application/xml")
+   public Response createAutoQuery(AutomatedQuery queryData) 
    {
-       requiredParameter(query, "q", "AnnisQL query");
-       requiredParameter(rawCorpusNames, "corpora",
-               "comma separated list of corpus names");
-       requiredParameter(schedulingPattern, "schedulingPattern",
-               "cron-style scheduling pattern");
-       
        Subject subject = SecurityUtils.getSubject();
        String username = (String) subject.getPrincipal();
        
-       //set defaults
-       if (owner == null)
-       {
-           owner = username;
-           isGroup = false;
-       }
-       isGroup = (isGroup == null)? false : isGroup;
-       isActive = (isActive == null)? false : isActive;
-       description = (description == null)? "" : description;
-       //end defaults
+       queryData.setDefaults(username);
+       
        //security checks
-       if (isGroup)
+       if (queryData.getIsOwnerGroup())
        {
-           subject.checkPermission("schedule:write:group:" + owner);
+           subject.checkPermission("schedule:write:group:" + queryData.getOwner());
        } else
        {
            subject.checkPermission("schedule:write:user");
-           if (!owner.equals(username))
+           if (!queryData.getOwner().equals(username))
             {
                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).entity(
                         "Owner in query not the same as login name.").build());
             }           
        }
        //end security checks
-       if (!SchedulingPattern.validate(schedulingPattern)) {
+       if (!SchedulingPattern.validate(queryData.getSchedulingPattern())) {
            throw new WebApplicationException(
                    Response.status(Response.Status.BAD_REQUEST).type(
                    MediaType.TEXT_PLAIN).entity(
-                   "Invalid scheduling pattern: " + schedulingPattern).build());
+                   "Invalid scheduling pattern: " + queryData.getSchedulingPattern()).build());
        }
-       List<String> corpusNames = splitCorpusNamesFromRaw(rawCorpusNames);
-            
-       AutomatedQuery queryData = new AutomatedQuery(query,
-            corpusNames,
-            schedulingPattern,
-            description,
-            owner,
-            isGroup,
-            isActive);
+       
       if (scheduler.addAutomatedQuery(queryData))
       {
          return Response.created(null).build();
@@ -211,19 +172,22 @@ public class AutomationServiceImpl /*implements AutomationService */
    @PathParam("queryId") UUID id)
    {   
        //sanitycheck sameId?
-       if (!id.equals(query.getId()) || !scheduler.idExists(id))
+       if (!id.equals(query.getId()))
        {
            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).entity(
            "QueryId in Object is not the same as in path.").build());
+       } 
+       if (!scheduler.idExists(id)) {
+           throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).entity(
+                   "Query to edit does not exist").build());
        }
        
        AutomatedQuery old = scheduler.getQuery(id);       
        
        //check permissions
        Subject subject = SecurityUtils.getSubject();
-       String username = (String) subject.getPrincipal(); 
-       log.info(username);
-       log.info(query.getOwner());
+       String username = (String) subject.getPrincipal();
+       
        if (query.getIsOwnerGroup())
         {
             subject.checkPermission("schedule:writegroup:" + query.getOwner());
@@ -426,18 +390,7 @@ public class AutomationServiceImpl /*implements AutomationService */
         build());
     }
   }
-  
-    /**
-   * Splits a list of corpus names into a proper java list.
-   *
-   * @param rawCorpusNames The corpus names separated by ",".
-   * @return
-   */
-  private List<String> splitCorpusNamesFromRaw(String rawCorpusNames)
-  {
-    return Arrays.asList(rawCorpusNames.split(","));
-  }
-  
+    
   private Set<UUID> splitIdsFromRaw(String rawIds)
   {
       List<String> tmp = Arrays.asList(rawIds.split(","));
