@@ -20,6 +20,11 @@ import annis.libgui.Helper;
 import annis.gui.HistoryPanel;
 import annis.gui.QueryController;
 import annis.gui.SearchUI;
+import annis.gui.admin.model.GroupManagement;
+import annis.gui.automation.QueryAutomationPanel;
+import annis.gui.automation.QueryListView;
+import annis.gui.automation.controller.AutomatedQueryController;
+import annis.gui.automation.model.AutomatedQueryManagement;
 import annis.gui.beans.HistoryEntry;
 import annis.gui.components.ExceptionDialog;
 import annis.gui.components.VirtualKeyboard;
@@ -81,6 +86,7 @@ public class QueryPanel extends GridLayout implements TextChangeListener,
   private Window historyWindow;
   private PopupButton btMoreActions;
   private FrequencyQueryPanel frequencyPanel;
+  private QueryAutomationPanel queryAutomationPanel;
   
   public QueryPanel(SearchUI ui)
   {
@@ -236,6 +242,10 @@ public class QueryPanel extends GridLayout implements TextChangeListener,
     btShowFrequency.setWidth("100%");
     moreActionsLayout.addComponent(btShowFrequency);
     
+    Button btScheduleQuery = new Button("Automate Query", new ScheduleQueryClickListener(ui));
+    btScheduleQuery.setIcon(FontAwesome.CALENDAR);
+    btScheduleQuery.setWidth("100%");
+    moreActionsLayout.addComponent(btScheduleQuery);
     
     /*
      * We use the grid layout for a better rendering efficiency, but this comes
@@ -275,7 +285,7 @@ public class QueryPanel extends GridLayout implements TextChangeListener,
     {
       addComponent(btShowKeyboard, 3, 1);
     }
-
+    
     // alignment
     setRowExpandRatio(0, 0.0f);
     setRowExpandRatio(1, 1.0f);
@@ -587,6 +597,48 @@ public class QueryPanel extends GridLayout implements TextChangeListener,
       btMoreActions.setPopupVisible(false);
     }
     
+  }
+  
+    private class ScheduleQueryClickListener implements ClickListener
+  {
+    private SearchUI ui;
+    
+    public ScheduleQueryClickListener(SearchUI ui)
+    {
+      this.ui = ui;
+    }
+    
+    @Override
+    public void buttonClick(ClickEvent event)
+    {
+      
+      if (queryAutomationPanel == null)
+      {
+        queryAutomationPanel =  new QueryAutomationPanel(ui.getQueryController());
+        txtQuery.addTextChangeListener(queryAutomationPanel);
+        ui.getQueryController().addCorpusSelectionChangeListener(
+          queryAutomationPanel);
+  
+        AutomatedQueryController aqc = new AutomatedQueryController(ui.getAutomatedQueryManagement(), new GroupManagement(),
+          queryAutomationPanel, ui);
+        queryAutomationPanel.addListener((QueryListView.Listener) aqc);
+      }
+      
+      final TabSheet tabSheet = ui.getMainTab();
+      Tab tab = tabSheet.getTab(queryAutomationPanel);
+      
+      if (tab == null)
+      {
+        tab = tabSheet.addTab(queryAutomationPanel, "Automated Queries");
+        tab.setIcon(FontAwesome.CALENDAR);
+      }
+      
+      
+      tab.setClosable(true);
+      tabSheet.setSelectedTab(queryAutomationPanel);
+      
+      btMoreActions.setPopupVisible(false);      
+    }
   }
   
   private static class ShowQueryBuilderClickListener implements ClickListener

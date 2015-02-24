@@ -16,6 +16,8 @@
 package annis.gui;
 
 import annis.VersionInfo;
+import annis.gui.automation.model.AutomatedQueryManagement;
+import annis.gui.automation.model.AutomatedQueryResultsManagement;
 import annis.gui.requesthandler.ResourceRequestHandler;
 import annis.gui.requesthandler.LoginServletRequestHandler;
 import annis.gui.components.ExceptionDialog;
@@ -117,6 +119,10 @@ public class SearchUI extends AnnisBaseUI
   private TabSheet mainTab;
 
   private QueryController queryController;
+  
+  private AutomatedQueryManagement automatedQueryManagement;
+  
+  private AutomatedQueryResultsManagement automatedQueryResultsManagement;
 
   private String lastQueriedFragment;
 
@@ -226,7 +232,14 @@ public class SearchUI extends AnnisBaseUI
 
     checkServiceVersion();
     evaluateFragment(getPage().getUriFragment());
-
+    
+    WebResource rootResource = Helper.getAnnisWebResource();
+    
+    automatedQueryManagement = new AutomatedQueryManagement();
+    automatedQueryManagement.setRootResource(rootResource);
+    automatedQueryResultsManagement = new AutomatedQueryResultsManagement();
+    automatedQueryResultsManagement.setRootResource(rootResource);
+    
   }
 
   private void checkServiceVersion()
@@ -947,5 +960,15 @@ public class SearchUI extends AnnisBaseUI
   public DocBrowserController getDocBrowserController()
   {
     return docBrowserController;
+  }
+  
+  public AutomatedQueryManagement getAutomatedQueryManagement()
+  {
+    return automatedQueryManagement;
+  }
+  
+  public AutomatedQueryResultsManagement getAutomatedQueryResultsManagement()
+  {
+    return automatedQueryResultsManagement;
   }
 }
