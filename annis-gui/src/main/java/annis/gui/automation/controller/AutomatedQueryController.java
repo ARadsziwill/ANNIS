@@ -57,10 +57,7 @@ public class AutomatedQueryController implements QueryListView.Listener
     this.ui = ui;
     this.groupModel = groupModel;
     this.corpusModel = corpusModel;
-    view.setAvailableGroups(groupModel.getGroupNames());
-    model.fetchFromService();
-    view.setQueryList(model.getQueries());
-    view.setAvailableCorpusNames(corpusModel.getCorpusNames());
+    updateView();
   }
   
   private void clearModel()
@@ -81,6 +78,7 @@ public class AutomatedQueryController implements QueryListView.Listener
     {
       view.setStatus("Query not saved");
     }
+    updateView();
   }
 
   @Override
@@ -95,11 +93,41 @@ public class AutomatedQueryController implements QueryListView.Listener
     {
       view.setStatus("Query not created");
     }
+    updateView();
   }
 
   @Override
   public void deleteQueries(Set<UUID> queryIds)
   {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    StringBuilder status = new StringBuilder("Deleting Queries: ");
+    StringBuilder deleted = new StringBuilder("Deleted: ");
+    StringBuilder notDeleted = new StringBuilder("Not deleted: ");
+    for (UUID id : queryIds)
+    {
+      status.append(id + "\t");
+      if (model.deleteQuery(id))
+      {
+        deleted.append(id + "\t");
+      }
+      else
+      {
+        notDeleted.append(id + "\t");
+      }
+    }
+    status.append("\n");
+    status.append(deleted);
+    status.append("\n");
+    status.append(notDeleted);
+    view.setStatus(status.toString());
+    updateView();    
+  }
+  
+  private void updateView()
+  {
+    model.fetchFromService();
+    view.setQueryList(model.getQueries());
+    view.setAvailableCorpusNames(corpusModel.getCorpusNames());
+    view.setAvailableGroups(groupModel.getGroupNames());
+
   }
 }

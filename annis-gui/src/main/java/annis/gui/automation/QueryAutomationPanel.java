@@ -107,13 +107,15 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
   
   private final Table tblQueries = new Table(); 
   
+  private final Button btnDelete;
   
  public QueryAutomationPanel(final QueryController queryController) 
  {
    setWidth("99%");
    setHeight("99%");
    setMargin(true);
-   
+   setSpacing(true);
+
    //Setup Data
    corpora = new TreeSet<>();
    corpora.addAll(queryController.getSelectedCorpora());
@@ -228,6 +230,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
    
    selGroup = new ComboBox();
    selGroup.setContainerDataSource(groupsContainer);
+   selGroup.setEnabled(false);
    selGroup.addBlurListener(new FieldEvents.BlurListener()
    {
 
@@ -269,8 +272,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
      {
        for (QueryListView.Listener l : listeners)
      {
-       //TODO group name
-       
+             
        l.addNewQuery(new AutomatedQuery(query.getValue(), corpora, schedulingPattern.getValue(), txtDescription.getValue(),
         group, isGroup, chkIsActive.getValue()));
      }
@@ -311,8 +313,23 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
   
    addComponent(tblQueries);
    setExpandRatio(tblQueries, 1.0f);
-   setSpacing(true);
    
+   btnDelete = new Button("Delete Query");
+   btnDelete.addClickListener(new Button.ClickListener()
+   {
+
+     @Override
+     public void buttonClick(Button.ClickEvent event)
+     {
+       Set<UUID> queryIds = (Set<UUID>) tblQueries.getValue();
+      for (QueryListView.Listener l : listeners)
+      {
+        l.deleteQueries(queryIds);
+      }
+     }
+   });
+   
+   addComponent(btnDelete);
  }
  
   @Override
@@ -401,6 +418,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
           TextArea descArea = new TextArea();
           descArea.setPropertyDataSource(container.getItem(itemId).getItemProperty(propertyId));
           descArea.setRows(2);
+          descArea.setColumns(15);
           result = descArea;
           break;
        default:

@@ -83,7 +83,7 @@ public class AutomatedQueryManagement
       }
       catch(UniformInterfaceException ex)
       {
-        log.warn("Could not create automated query" , ex);
+        log.warn("Could not create automated query: " + ex.getResponse().getEntity(String.class) , ex);
       }
     }
     return false;
@@ -99,6 +99,7 @@ public class AutomatedQueryManagement
       {
         res.put(newQuery);
         queries.put(newQuery.getId(), newQuery);
+        return true;
       }
       catch (UniformInterfaceException ex)
       {
@@ -108,15 +109,24 @@ public class AutomatedQueryManagement
     return false;
   }
   
-  public void deleteQuery(UUID queryId)
+  public boolean deleteQuery(UUID queryId)
   {
     if (rootResource != null)
     {
       WebResource res = rootResource.path("automation/scheduledQueries").path(
           queryId.toString());
+      try 
+      {
       res.delete();
       queries.remove(queryId);
+      return true;
+      }
+      catch (UniformInterfaceException ex)
+      {
+        log.warn("Could not delete query", ex);
+      }
     }
+    return false;
   }
 
   public Collection<AutomatedQuery> getQueries()

@@ -175,7 +175,7 @@ public class AutomatedQuery implements Serializable
           throw new IllegalArgumentException("The default usernam may not be " +
             "null or empty");
         }
-                
+            
       if (owner == null || owner.isEmpty())
       {
            setOwner(username);
