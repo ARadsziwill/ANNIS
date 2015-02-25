@@ -30,6 +30,7 @@ public interface QueryListView
   
   public void setQueryList(Collection<AutomatedQuery> queries);
   public void setAvailableGroups(Collection<String> groups);
+  public void setAvailableCorpusNames(Collection<String> corpusNames);
   
   public void emptyNewQueryInputFields();
   public void setStatus(String message);

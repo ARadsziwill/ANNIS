@@ -15,10 +15,12 @@
  */
 package annis.automation;
 
+import annis.adapter.TreeSetAdapter;
 import annis.adapter.UUIDAdapter;
 import java.io.Serializable;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -52,8 +54,10 @@ public class AutomatedQuery implements Serializable
     private Boolean isOwnerGroup; 
     @XmlElement(required = true)
     private Boolean isActive;
-    
-    private List<String> corpora;
+     
+    @XmlJavaTypeAdapter(TreeSetAdapter.class)
+    @XmlElement(name="corpora")
+    private TreeSet<String> corpora;
     
     
     private AutomatedQuery()
@@ -62,7 +66,7 @@ public class AutomatedQuery implements Serializable
     }
     
     public AutomatedQuery(String query,
-            List<String> corpora,
+            TreeSet<String> corpora,
             String schedulingPattern,
             String description,
             String owner,
@@ -80,7 +84,7 @@ public class AutomatedQuery implements Serializable
       this.id = id;
     }
 
-    public AutomatedQuery(String query, List<String> corpusNames, String schedulingPattern, String description, String owner, boolean isOwnerGroup, boolean isActive) {
+    public AutomatedQuery(String query, TreeSet<String> corpusNames, String schedulingPattern, String description, String owner, boolean isOwnerGroup, boolean isActive) {
         this(query, corpusNames, schedulingPattern, description, owner, isOwnerGroup, isActive, UUID.randomUUID());
     }
 
@@ -99,13 +103,12 @@ public class AutomatedQuery implements Serializable
     this.query = query;
   }
 
-  public List<String> getCorpora()
+  public TreeSet<String> getCorpora()
   {
     return corpora;
   }
-  
-@XmlElement(name="corpora")
-  public void setCorpora(List<String> corpora)
+ 
+  public void setCorpora(TreeSet<String> corpora)
   {
     this.corpora = corpora;
   }

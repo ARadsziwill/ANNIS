@@ -20,6 +20,7 @@ import annis.libgui.Helper;
 import annis.gui.HistoryPanel;
 import annis.gui.QueryController;
 import annis.gui.SearchUI;
+import annis.gui.admin.model.CorpusManagement;
 import annis.gui.admin.model.GroupManagement;
 import annis.gui.automation.QueryAutomationPanel;
 import annis.gui.automation.QueryListView;
@@ -619,7 +620,7 @@ public class QueryPanel extends GridLayout implements TextChangeListener,
         ui.getQueryController().addCorpusSelectionChangeListener(
           queryAutomationPanel);
   
-        AutomatedQueryController aqc = new AutomatedQueryController(ui.getAutomatedQueryManagement(), new GroupManagement(),
+        AutomatedQueryController aqc = new AutomatedQueryController(ui.getAutomatedQueryManagement(), new GroupManagement(), new CorpusManagement(),
           queryAutomationPanel, ui);
         queryAutomationPanel.addListener((QueryListView.Listener) aqc);
       }

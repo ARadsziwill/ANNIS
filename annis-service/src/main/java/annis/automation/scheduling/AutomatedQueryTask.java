@@ -22,6 +22,8 @@ import annis.utils.Utils;
 import it.sauronsoftware.cron4j.Task;
 import it.sauronsoftware.cron4j.TaskExecutionContext;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
 import org.joda.time.DateTime;
 import java.util.List;
 import org.slf4j.Logger;
@@ -90,7 +92,7 @@ public abstract class AutomatedQueryTask extends Task implements Serializable {
             {
                 AnnisScheduler scheduler = (AnnisScheduler) tec.getScheduler();
                 List<Long> corpusIDs = scheduler.getAnnisDao().
-                        mapCorpusNamesToIds(getQuery().getCorpora());
+                        mapCorpusNamesToIds(new ArrayList<>(getQuery().getCorpora()));
                 if (corpusIDs.size() != getQuery().getCorpora().size())
                 {
                     log.warn("One or more corpora are unknown to the system. " +

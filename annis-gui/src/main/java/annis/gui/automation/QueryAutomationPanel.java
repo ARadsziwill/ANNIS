@@ -22,24 +22,30 @@ import annis.gui.CorpusSelectionChangeListener;
 import annis.gui.QueryController;
 import annis.gui.SearchUI;
 import annis.gui.admin.PopupTwinColumnSelect;
+import annis.gui.admin.converter.CommaSeperatedStringConverter;
 import com.vaadin.data.Container;
 import com.vaadin.data.Property;
 import com.vaadin.data.util.BeanContainer;
 import com.vaadin.data.util.IndexedContainer;
+import com.vaadin.data.util.converter.Converter;
 import com.vaadin.event.FieldEvents;
 import com.vaadin.event.FieldEvents.TextChangeEvent;
 import com.vaadin.event.FieldEvents.TextChangeListener;
 import com.vaadin.shared.ui.label.ContentMode;
+import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.CheckBox;
 import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.DefaultFieldFactory;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.Field;
+import com.vaadin.ui.GridLayout;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.OptionGroup;
+import com.vaadin.ui.Panel;
 import com.vaadin.ui.Table;
+import com.vaadin.ui.TableFieldFactory;
 import com.vaadin.ui.TextArea;
 import com.vaadin.ui.TextField;
 import com.vaadin.ui.VerticalLayout;
@@ -52,6 +58,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import org.apache.commons.lang3.StringUtils;
 import it.sauronsoftware.cron4j.SchedulingPattern;
+import java.util.HashSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,11 +75,11 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
   private final BeanContainer<UUID, AutomatedQuery> queriesContainer;
   
   private final IndexedContainer groupsContainer = new IndexedContainer();
- 
+  private final IndexedContainer corpusContainer = new IndexedContainer();
   
   //newQuery data
   private TextField query = new TextField();
-  private final Set<String> corpora;
+  private final TreeSet<String> corpora;
   private boolean isGroup = false;
   private String group;
   
@@ -82,7 +89,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
   private final TextArea txtDescription;
   
   private final TextField schedulingPattern;
-  private final Label lblNextExecution;
+  private final TextArea txtNextExecution;
  
   
  // private final SchedulingPatternWidget patternBuilder;
@@ -97,9 +104,9 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
   private final Button btnReset;  
  
   private final Label lblStatus;
-  /*
+  
   private final Table tblQueries = new Table(); 
-  */
+  
   
  public QueryAutomationPanel(final QueryController queryController) 
  {
@@ -111,42 +118,45 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
    corpora = new TreeSet<>();
    corpora.addAll(queryController.getSelectedCorpora());
    
-   queriesContainer = new BeanContainer<>(AutomatedQuery.class);
-   queriesContainer.setBeanIdProperty("id");
-   
    query.setValue(queryController.getQueryDraft());
    
    //Setup GUI Components
+   Panel editPanel = new Panel();
    
-   HorizontalLayout editLayout = new HorizontalLayout();
+   GridLayout editLayout = new GridLayout(5, 4);
    editLayout.setSpacing(true);
-   editLayout.setWidth("100%");
-   editLayout.setHeight("-1px");
+   editLayout.setMargin(true);
+   editLayout.setDefaultComponentAlignment(Alignment.MIDDLE_LEFT);
    
+   editPanel.setContent(editLayout);
    //Query Info
-   VerticalLayout firstColumn = new VerticalLayout();
+   editLayout.addComponent(new Label("Query Information"), 0, 0, 1, 0);
    
    lblSelectedCorpora = new Label();
-   lblSelectedCorpora.setCaption("Selected corpora");
+   Label lblSelectedCaption = new Label("Selected corpora");
    lblSelectedCorpora.setValue(StringUtils.join(corpora, ", "));
-   firstColumn.addComponent(lblSelectedCorpora);
+   editLayout.addComponent(lblSelectedCaption, 0, 1);
+   editLayout.addComponent(lblSelectedCorpora, 1, 1);
    
    lblQuery = new Label();
-   lblQuery.setCaption("Query to analyze");
    lblQuery.setStyleName("corpus-font-force");
    lblQuery.setPropertyDataSource(query);
-   firstColumn.addComponent(lblQuery);
-   
+   lblQuery.setEnabled(false);
+   Label lblQueryCaption = new Label("Query to analyze");
+   editLayout.addComponent(lblQueryCaption, 0, 2);
+   editLayout.addComponent(lblQuery, 1, 2);
+ 
+  
    txtDescription = new TextArea();
-   txtDescription.setCaption("Description");
-   
-   firstColumn.addComponent(txtDescription);
+   txtDescription.setRows(5);
+   txtDescription.setColumns(20);
+   Label lblDescription = new Label("Description");
+   editLayout.addComponent(lblDescription, 0, 3);
+   editLayout.addComponent(txtDescription, 1, 3);
    
    //Scheduling pattern setting
-   VerticalLayout secondColumn = new VerticalLayout();
    
    schedulingPattern = new TextField();
-   schedulingPattern.setCaption("Scheduling Pattern:");
    schedulingPattern.setValue("");
    schedulingPattern.addTextChangeListener(new TextChangeListener()
    {
@@ -154,6 +164,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
      @Override
      public void textChange(TextChangeEvent event)
      {
+       txtNextExecution.setReadOnly(false);
        if (SchedulingPattern.validate(event.getText()))
         {
           Predictor p = new Predictor(event.getText());
@@ -164,28 +175,35 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
                executions.append(p.nextMatchingDate());
                executions.append("\n");
              }
+             executions.reverse().deleteCharAt(0).reverse();
 
-          lblNextExecution.setValue(executions.toString());
+          txtNextExecution.setValue(executions.toString());
           btnSubmit.setEnabled(true);
         }
           else
         { 
-          lblNextExecution.setValue("Scheduling Pattern invalid.");
+          txtNextExecution.setValue("Scheduling Pattern invalid.");
           btnSubmit.setEnabled(false);
         }
+       txtNextExecution.setReadOnly(true);
      }
    });
    
-   lblNextExecution = new Label();
-   lblNextExecution.setCaption("Next 5 executions: ");
-   lblNextExecution.setContentMode(ContentMode.PREFORMATTED);
-   lblNextExecution.setValue("");
+   txtNextExecution = new TextArea();   
+   txtNextExecution.setValue("Scheduling Pattern invalid");
+   txtNextExecution.setRows(5);
+   txtNextExecution.setColumns(20);
+   txtNextExecution.setReadOnly(true);
+     
+   Label lblNextCaption = new Label("Next 5 executions");
    
-   secondColumn.addComponent(schedulingPattern);
-   secondColumn.addComponent(lblNextExecution);
+   Label lblScheduling = new Label("Scheduling Pattern");
+   editLayout.addComponent(lblScheduling, 2, 0);
+   editLayout.addComponent(schedulingPattern, 2, 1);
+   editLayout.addComponent(lblNextCaption, 2, 2);
+   editLayout.addComponent(txtNextExecution, 2, 3);
    
    //Owner and Active setting
-   VerticalLayout thirdColumn = new VerticalLayout();
 
    chkIsGroup = new CheckBox();
    chkIsGroup.setCaption("assign to group");
@@ -208,8 +226,8 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
      }
    });
    
-   selGroup = new ComboBox("Group", groupsContainer);
-   selGroup.setEnabled(isGroup);
+   selGroup = new ComboBox();
+   selGroup.setContainerDataSource(groupsContainer);
    selGroup.addBlurListener(new FieldEvents.BlurListener()
    {
 
@@ -222,14 +240,12 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
    
    chkIsActive = new CheckBox("is active?");
    
-   thirdColumn.addComponent(chkIsGroup);
-   thirdColumn.addComponent(selGroup);
-   thirdColumn.addComponent(chkIsActive);
+   editLayout.addComponent(new Label("Owner/ Status"), 3, 0, 4, 0);
+   editLayout.addComponent(chkIsGroup, 3, 1);
+   editLayout.addComponent(selGroup, 4, 1);
+   editLayout.addComponent(chkIsActive, 3, 2);
    
-   VerticalLayout fourthColumn = new VerticalLayout();
-      
-
-//Reset Button
+   //Reset Button
    btnReset = new Button();
    btnReset.setCaption("Reset data");
    btnReset.addClickListener(new Button.ClickListener()
@@ -255,36 +271,48 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
      {
        //TODO group name
        
-       l.addNewQuery(new AutomatedQuery(query.getValue(), new LinkedList<>(corpora), schedulingPattern.getValue(), txtDescription.getValue(),
+       l.addNewQuery(new AutomatedQuery(query.getValue(), corpora, schedulingPattern.getValue(), txtDescription.getValue(),
         group, isGroup, chkIsActive.getValue()));
      }
      }
    });
-   fourthColumn.addComponent(btnReset);
-   fourthColumn.addComponent(btnSubmit);
    
-   editLayout.addComponent(firstColumn);
-   editLayout.addComponent(secondColumn);
-   editLayout.addComponent(thirdColumn);
-   editLayout.addComponent(fourthColumn);
+   editLayout.addComponent(btnSubmit, 3, 3);
+   editLayout.addComponent(btnReset, 4, 3);
    
-   addComponent(editLayout);
+   addComponent(editPanel);
    
    lblStatus = new Label();
    lblStatus.setContentMode(ContentMode.PREFORMATTED);
-   lblStatus.setValue("Enter your query.");
+   lblStatus.setValue("Enter your query on the left, choose corpora from the list. Enter a valid cron scheduling pattern and choose the owner for your query above.");
    
-   addComponent(lblStatus);
-   /*
-   tblQueries.setContainerDataSource(queriesContainer);
+   Panel statusPanel = new Panel(lblStatus);
+   statusPanel.setHeightUndefined();
+   
+   addComponent(statusPanel);
+   
+    
+   queriesContainer = new BeanContainer<>(AutomatedQuery.class);
+   queriesContainer.setBeanIdProperty("id");
+   
    tblQueries.setEditable(true);
    tblQueries.setSelectable(true);
    tblQueries.setMultiSelect(true);
    tblQueries.setSizeFull();
    tblQueries.addStyleName(ChameleonTheme.TABLE_STRIPED);
+   tblQueries.setContainerDataSource(queriesContainer);
    tblQueries.addStyleName("grey-selection");
-   */
+   
+   tblQueries.setTableFieldFactory(new FieldFactory());
+   
+   tblQueries.setVisibleColumns("corpora", "query", "description", "schedulingPattern", "isOwnerGroup", "owner", "isActive");
+   tblQueries.setColumnHeaders("Corpora", "Query", "Description", "Scheduling Pattern", "Assigned To Group?", "Owner", "Is Active?");
+   
   
+   addComponent(tblQueries);
+   setExpandRatio(tblQueries, 1.0f);
+   setSpacing(true);
+   
  }
  
   @Override
@@ -338,5 +366,51 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
     {
       groupsContainer.addItem(group);
     }    
+  }
+  
+  @Override
+  public void setAvailableCorpusNames(Collection<String> corpusNames)
+  {
+    corpusContainer.removeAllItems();
+    for (String c : corpusNames)
+    {
+      corpusContainer.addItem(c);
+    }
+  }
+  
+  public class FieldFactory extends DefaultFieldFactory
+  {
+    @Override
+    public Field<?> createField(Container container, final Object itemId,
+      Object propertyId, Component uiContext)
+    {
+      
+      Field<?> result = null;
+      
+      switch ((String) propertyId)
+      {
+        case "corpora":
+          PopupTwinColumnSelect selector = new PopupTwinColumnSelect(corpusContainer);
+          selector.setWidth("100%");
+          result = selector;
+          break;
+        case "query":
+          result = null;
+          break;
+        case "description":
+          TextArea descArea = new TextArea();
+          descArea.setPropertyDataSource(container.getItem(itemId).getItemProperty(propertyId));
+          descArea.setRows(2);
+          result = descArea;
+          break;
+       default:
+          result = super.createField(container, itemId, propertyId, uiContext);
+          break;
+      
+      }
+      
+      
+      return result;
+    }
   }
 }
