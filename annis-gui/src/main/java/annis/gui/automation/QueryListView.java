@@ -16,6 +16,7 @@
 package annis.gui.automation;
 
 import annis.automation.AutomatedQuery;
+import annis.gui.QueryController;
 import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
@@ -31,6 +32,7 @@ public interface QueryListView
   public void setQueryList(Collection<AutomatedQuery> queries);
   public void setAvailableGroups(Collection<String> groups);
   public void setAvailableCorpusNames(Collection<String> corpusNames);
+  public void setQueryAndCorpora(QueryController controller);
   
   public void emptyNewQueryInputFields();
   public void setStatus(String message);

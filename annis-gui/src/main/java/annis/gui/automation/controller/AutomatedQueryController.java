@@ -28,6 +28,7 @@ import annis.gui.automation.model.AutomatedQueryManagement;
 import annis.security.Group;
 import annis.security.User;
 import com.sun.jersey.api.client.WebResource;
+import com.vaadin.ui.TabSheet;
 import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -37,26 +38,24 @@ import org.slf4j.LoggerFactory;
  *
  * @author Andreas Radsziwill <radsziwill@stud.tu-darmstadt.de>
  */
-public class AutomatedQueryController implements QueryListView.Listener
+public class AutomatedQueryController implements QueryListView.Listener, TabSheet.SelectedTabChangeListener
 {
 
     private final Logger log = LoggerFactory.getLogger(AutomatedQueryController.class);
     
     private final AutomatedQueryManagement model;
     private final GroupManagement groupModel;
-    private final CorpusManagement corpusModel;
     private final QueryListView view;
     private final SearchUI ui;
     
     
     
-  public AutomatedQueryController(AutomatedQueryManagement model, GroupManagement groupModel, CorpusManagement corpusModel, QueryListView view, SearchUI ui)
+  public AutomatedQueryController(AutomatedQueryManagement model, GroupManagement groupModel, QueryListView view, SearchUI ui)
   {
     this.model = model;
     this.view = view;
     this.ui = ui;
     this.groupModel = groupModel;
-    this.corpusModel = corpusModel;
     updateView();
   }
   
@@ -126,8 +125,17 @@ public class AutomatedQueryController implements QueryListView.Listener
   {
     model.fetchFromService();
     view.setQueryList(model.getQueries());
-    view.setAvailableCorpusNames(corpusModel.getCorpusNames());
+    view.setAvailableCorpusNames(ui.getControlPanel().getCorpusList().getVisibleCorpora());
     view.setAvailableGroups(groupModel.getGroupNames());
+    view.setQueryAndCorpora(ui.getQueryController());
+  }
 
+  @Override
+  public void selectedTabChange(TabSheet.SelectedTabChangeEvent event)
+  {
+    if (event.getTabSheet().getSelectedTab().equals(view))
+    {
+      updateView();
+    }
   }
 }

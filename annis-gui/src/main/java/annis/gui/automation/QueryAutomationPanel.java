@@ -31,6 +31,8 @@ import com.vaadin.data.util.converter.Converter;
 import com.vaadin.event.FieldEvents;
 import com.vaadin.event.FieldEvents.TextChangeEvent;
 import com.vaadin.event.FieldEvents.TextChangeListener;
+import com.vaadin.server.ExternalResource;
+import com.vaadin.server.Resource;
 import com.vaadin.shared.ui.label.ContentMode;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
@@ -67,7 +69,15 @@ import org.slf4j.LoggerFactory;
  * @author Andreas Radsziwill <radsziwill@stud.tu-darmstadt.de>
  */
 public class QueryAutomationPanel extends VerticalLayout implements TextChangeListener, QueryListView, CorpusSelectionChangeListener
-{  
+{ 
+  private static final String SCHEDULING_INFO = "Please enter a valid cron pattern formated like this:\n"
+    + "'mm hh dd MM ww' where "
+    + "'mm' denotes the minutes, "
+    + "'hh' dentotes the hours, "
+    + "'dd' denotes the days in the month, "
+    + "'MM' denotes the months in the year, and"
+    + "'ww' denotes the weekdays the query should be exectuted.";
+  private final static String CRON4JURL = "<a href='http://www.sauronsoftware.it/projects/cron4j/manual.php#p02' target='_blank'> More info</a>";
   private final Logger log = LoggerFactory.getLogger(QueryAutomationPanel.class);
   
   private final List<QueryListView.Listener> listeners = new LinkedList<>();
@@ -79,7 +89,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
   
   //newQuery data
   private TextField query = new TextField();
-  private final TreeSet<String> corpora;
+  private final TreeSet<String> corpora = new TreeSet<>();
   private boolean isGroup = false;
   private String group;
   
@@ -115,12 +125,6 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
    setHeight("99%");
    setMargin(true);
    setSpacing(true);
-
-   //Setup Data
-   corpora = new TreeSet<>();
-   corpora.addAll(queryController.getSelectedCorpora());
-   
-   query.setValue(queryController.getQueryDraft());
    
    //Setup GUI Components
    Panel editPanel = new Panel();
@@ -184,7 +188,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
         }
           else
         { 
-          txtNextExecution.setValue("Scheduling Pattern invalid.");
+          txtNextExecution.setValue(SCHEDULING_INFO);
           btnSubmit.setEnabled(false);
         }
        txtNextExecution.setReadOnly(true);
@@ -192,14 +196,15 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
    });
    
    txtNextExecution = new TextArea();   
-   txtNextExecution.setValue("Scheduling Pattern invalid");
+   txtNextExecution.setValue(SCHEDULING_INFO);
    txtNextExecution.setRows(5);
    txtNextExecution.setColumns(20);
    txtNextExecution.setReadOnly(true);
      
-   Label lblNextCaption = new Label("Next 5 executions");
+   Label lblNextCaption = new Label("Next 5 executions:");
    
    Label lblScheduling = new Label("Scheduling Pattern");
+   lblScheduling.setDescription(CRON4JURL);
    editLayout.addComponent(lblScheduling, 2, 0);
    editLayout.addComponent(schedulingPattern, 2, 1);
    editLayout.addComponent(lblNextCaption, 2, 2);
@@ -330,7 +335,16 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
    });
    
    addComponent(btnDelete);
+   setQueryAndCorpora(queryController);
  }
+
+  public void setQueryAndCorpora(final QueryController queryController) throws Property.ReadOnlyException
+  {
+      corpora.clear();
+      corpora.addAll(queryController.getSelectedCorpora());
+      lblSelectedCorpora.setValue(StringUtils.join((corpora), ", "));
+      query.setValue(queryController.getQueryDraft());
+  }
  
   @Override
   public void setStatus(String message)
@@ -364,6 +378,11 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
     schedulingPattern.setValue("");
     chkIsGroup.setValue(false);
     chkIsActive.setValue(false);
+    txtDescription.setValue("");
+    txtNextExecution.setReadOnly(false);
+    txtNextExecution.setValue(SCHEDULING_INFO);
+    txtNextExecution.setReadOnly(true);
+    btnSubmit.setEnabled(false);
   }
 
 
