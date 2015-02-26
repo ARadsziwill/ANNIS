@@ -23,6 +23,7 @@ import annis.gui.QueryController;
 import annis.gui.SearchUI;
 import annis.gui.admin.PopupTwinColumnSelect;
 import annis.gui.admin.converter.CommaSeperatedStringConverter;
+import annis.gui.components.HelpButton;
 import com.vaadin.data.Container;
 import com.vaadin.data.Property;
 import com.vaadin.data.util.BeanContainer;
@@ -70,14 +71,21 @@ import org.slf4j.LoggerFactory;
  */
 public class QueryAutomationPanel extends VerticalLayout implements TextChangeListener, QueryListView, CorpusSelectionChangeListener
 { 
-  private static final String SCHEDULING_INFO = "Please enter a valid cron pattern formated like this:\n"
-    + "'mm hh dd MM ww' where "
-    + "'mm' denotes the minutes, "
-    + "'hh' dentotes the hours, "
-    + "'dd' denotes the days in the month, "
-    + "'MM' denotes the months in the year, and"
-    + "'ww' denotes the weekdays the query should be exectuted.";
-  private final static String CRON4JURL = "<a href='http://www.sauronsoftware.it/projects/cron4j/manual.php#p02' target='_blank'> More info</a>";
+  private static final String SCHEDULING_INFO = "Please enter a valid scheduling pattern expression formatted like this:<br />"
+    + "'mm hh dd MM ww' where<br />"
+    + "'mm' denotes the minutes,<br />"
+    + "'hh' dentotes the hours,<br />"
+    + "'dd' denotes the days in the month,<br />"
+    + "'MM' denotes the months in the year, and <br />"
+    + "'ww' denotes the weekdays at which the query should be exectuted.<br /><br />"
+    + "Special characters:<br />"
+    + "Use ',' to denote alternatives inside a slot.<br />"
+    + "Use '-' to denote ranges inside a slot.<br />"
+    + "A '*' schedules the execution at 'every' of the slot it is used in.<br />"
+    + "A '|' (pipe) followed by another expression can be used for an alternative. "
+    + "Execution happens when any of the alternatives matches the current time. <br />"
+    + "For more information and examples visit: <a href='http://www.sauronsoftware.it/projects/cron4j/manual.php#p02' target='_blank'> cron4j documentation</a>";
+
   private final Logger log = LoggerFactory.getLogger(QueryAutomationPanel.class);
   
   private final List<QueryListView.Listener> listeners = new LinkedList<>();
@@ -179,7 +187,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
              for(int i = 0; i < 5; i++)
              {
                executions.append(p.nextMatchingDate());
-               executions.append("\n");
+               executions.append("<br />");
              }
              executions.reverse().deleteCharAt(0).reverse();
 
@@ -188,15 +196,20 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
         }
           else
         { 
-          txtNextExecution.setValue(SCHEDULING_INFO);
+          txtNextExecution.setValue("Invalid Pattern");
           btnSubmit.setEnabled(false);
         }
        txtNextExecution.setReadOnly(true);
      }
    });
    
+   
+   schedulingPattern.setDescription(SCHEDULING_INFO);
+   HelpButton patternHelp = new HelpButton<>(schedulingPattern);
+   
+   HorizontalLayout scheduleLayout = new HorizontalLayout(schedulingPattern, patternHelp);
    txtNextExecution = new TextArea();   
-   txtNextExecution.setValue(SCHEDULING_INFO);
+   txtNextExecution.setValue("Empty expression");
    txtNextExecution.setRows(5);
    txtNextExecution.setColumns(20);
    txtNextExecution.setReadOnly(true);
@@ -204,9 +217,8 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
    Label lblNextCaption = new Label("Next 5 executions:");
    
    Label lblScheduling = new Label("Scheduling Pattern");
-   lblScheduling.setDescription(CRON4JURL);
    editLayout.addComponent(lblScheduling, 2, 0);
-   editLayout.addComponent(schedulingPattern, 2, 1);
+   editLayout.addComponent(scheduleLayout, 2, 1);
    editLayout.addComponent(lblNextCaption, 2, 2);
    editLayout.addComponent(txtNextExecution, 2, 3);
    
@@ -291,7 +303,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
    
    lblStatus = new Label();
    lblStatus.setContentMode(ContentMode.PREFORMATTED);
-   lblStatus.setValue("Enter your query on the left, choose corpora from the list. Enter a valid cron scheduling pattern and choose the owner for your query above.");
+   lblStatus.setValue("Enter your query and choose corpora from the list on the left. Enter a valid cron scheduling pattern and choose the owner for your query above.");
    
    Panel statusPanel = new Panel(lblStatus);
    statusPanel.setHeightUndefined();
@@ -302,7 +314,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
    queriesContainer = new BeanContainer<>(AutomatedQuery.class);
    queriesContainer.setBeanIdProperty("id");
    
-   tblQueries.setEditable(true);
+   tblQueries.setEditable(false);
    tblQueries.setSelectable(true);
    tblQueries.setMultiSelect(true);
    tblQueries.setSizeFull();
@@ -310,11 +322,25 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
    tblQueries.setContainerDataSource(queriesContainer);
    tblQueries.addStyleName("grey-selection");
    
-   tblQueries.setTableFieldFactory(new FieldFactory());
+   //tblQueries.setTableFieldFactory(new FieldFactory());
    
    tblQueries.setVisibleColumns("corpora", "query", "description", "schedulingPattern", "isOwnerGroup", "owner", "isActive");
    tblQueries.setColumnHeaders("Corpora", "Query", "Description", "Scheduling Pattern", "Assigned To Group?", "Owner", "Is Active?");
    
+   tblQueries.addGeneratedColumn("Action", new Table.ColumnGenerator()
+   {
+
+     @Override
+     public Object generateCell(Table source, Object itemId, Object columnId)
+     {
+       HorizontalLayout layout = new HorizontalLayout();
+       Button btnEdit = new Button("Edit");
+       
+       Button btnShowResults = new Button("Results");
+       layout.addComponents(btnEdit, btnShowResults);
+       return layout;
+     }
+   });
   
    addComponent(tblQueries);
    setExpandRatio(tblQueries, 1.0f);
@@ -426,9 +452,10 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
       switch ((String) propertyId)
       {
         case "corpora":
-          PopupTwinColumnSelect selector = new PopupTwinColumnSelect(corpusContainer);
-          selector.setWidth("100%");
-          result = selector;
+          TreeSet<String> corpora = (TreeSet<String>) container.getContainerProperty(itemId, propertyId);
+          TextField txt = new TextField("",StringUtils.join(corpora, ", "));
+          txt.setEnabled(false);
+          result = txt;
           break;
         case "query":
           result = null;
@@ -438,14 +465,16 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
           descArea.setPropertyDataSource(container.getItem(itemId).getItemProperty(propertyId));
           descArea.setRows(2);
           descArea.setColumns(15);
+          descArea.setEnabled(false);
           result = descArea;
           break;
-       default:
+        case "schedulingPatern":
+          result = null;
+          break;
+        default:
           result = super.createField(container, itemId, propertyId, uiContext);
           break;
-      
       }
-      
       
       return result;
     }
