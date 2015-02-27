@@ -24,9 +24,12 @@ import annis.gui.SearchUI;
 import annis.gui.admin.PopupTwinColumnSelect;
 import annis.gui.admin.converter.CommaSeperatedStringConverter;
 import annis.gui.components.HelpButton;
+import annis.gui.objects.Query;
+import com.sun.org.apache.bcel.internal.Constants;
 import com.vaadin.data.Container;
 import com.vaadin.data.Property;
 import com.vaadin.data.util.BeanContainer;
+import com.vaadin.data.util.BeanItem;
 import com.vaadin.data.util.IndexedContainer;
 import com.vaadin.data.util.converter.Converter;
 import com.vaadin.event.FieldEvents;
@@ -69,7 +72,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author Andreas Radsziwill <radsziwill@stud.tu-darmstadt.de>
  */
-public class QueryAutomationPanel extends VerticalLayout implements TextChangeListener, QueryListView, CorpusSelectionChangeListener
+public class QueryAutomationPanel extends VerticalLayout implements TextChangeListener, AutomatedQueryListView, CorpusSelectionChangeListener
 { 
   private static final String SCHEDULING_INFO = "Please enter a valid scheduling pattern expression formatted like this:<br />"
     + "'mm hh dd MM ww' where<br />"
@@ -88,18 +91,20 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
 
   private final Logger log = LoggerFactory.getLogger(QueryAutomationPanel.class);
   
-  private final List<QueryListView.Listener> listeners = new LinkedList<>();
+  private final List<AutomatedQueryListView.Listener> listeners = new LinkedList<>();
  
   private final BeanContainer<UUID, AutomatedQuery> queriesContainer;
   
   private final IndexedContainer groupsContainer = new IndexedContainer();
   private final IndexedContainer corpusContainer = new IndexedContainer();
   
+  private final QueryController queryController;
   //newQuery data
-  private TextField query = new TextField();
-  private final TreeSet<String> corpora = new TreeSet<>();
-  private boolean isGroup = false;
-  private String group;
+  private AutomatedQuery editingQuery;
+  private boolean editing; 
+  
+  private TextField fieldQuery = new TextField();
+  private TreeSet<String> corpora = new TreeSet<>();
   
   //UI Components
   private final Label lblSelectedCorpora;
@@ -129,6 +134,8 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
   
  public QueryAutomationPanel(final QueryController queryController) 
  {
+   this.queryController = queryController;
+   
    setWidth("99%");
    setHeight("99%");
    setMargin(true);
@@ -154,12 +161,13 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
    
    lblQuery = new Label();
    lblQuery.setStyleName("corpus-font-force");
-   lblQuery.setPropertyDataSource(query);
+   lblQuery.setPropertyDataSource(fieldQuery);
    lblQuery.setEnabled(false);
    Label lblQueryCaption = new Label("Query to analyze");
    editLayout.addComponent(lblQueryCaption, 0, 2);
    editLayout.addComponent(lblQuery, 1, 2);
  
+   fieldQuery.addValueChangeListener(lblQuery);
   
    txtDescription = new TextArea();
    txtDescription.setRows(5);
@@ -168,6 +176,16 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
    editLayout.addComponent(lblDescription, 0, 3);
    editLayout.addComponent(txtDescription, 1, 3);
    
+   txtDescription.addValueChangeListener(new Property.ValueChangeListener()
+   {
+
+     @Override
+     public void valueChange(Property.ValueChangeEvent event)
+     {
+       editingQuery.setDescription(txtDescription.getValue());
+       validateInput();
+     }
+   });
    //Scheduling pattern setting
    
    schedulingPattern = new TextField();
@@ -178,28 +196,8 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
      @Override
      public void textChange(TextChangeEvent event)
      {
-       txtNextExecution.setReadOnly(false);
-       if (SchedulingPattern.validate(event.getText()))
-        {
-          Predictor p = new Predictor(event.getText());
-          StringBuilder executions = new StringBuilder();
-
-             for(int i = 0; i < 5; i++)
-             {
-               executions.append(p.nextMatchingDate());
-               executions.append("<br />");
-             }
-             executions.reverse().deleteCharAt(0).reverse();
-
-          txtNextExecution.setValue(executions.toString());
-          btnSubmit.setEnabled(true);
-        }
-          else
-        { 
-          txtNextExecution.setValue("Invalid Pattern");
-          btnSubmit.setEnabled(false);
-        }
-       txtNextExecution.setReadOnly(true);
+       editingQuery.setSchedulingPattern(event.getText());
+       validateInput();
      }
    });
    
@@ -209,7 +207,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
    
    HorizontalLayout scheduleLayout = new HorizontalLayout(schedulingPattern, patternHelp);
    txtNextExecution = new TextArea();   
-   txtNextExecution.setValue("Empty expression");
+   txtNextExecution.setValue("Scheduling pattern empty.");
    txtNextExecution.setRows(5);
    txtNextExecution.setColumns(20);
    txtNextExecution.setReadOnly(true);
@@ -232,33 +230,43 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
      @Override
      public void valueChange(Property.ValueChangeEvent event)
      {
-       if(!(Boolean) event.getProperty().getValue())
-       {
-         selGroup.setValue(null); 
-         isGroup = false;
-       }
-       else 
-       {
-         isGroup = true;
-       }
-         selGroup.setEnabled(isGroup);
+       boolean isGroup = (Boolean) event.getProperty().getValue(); 
+       
+       selGroup.setValue(null);       
+       selGroup.setEnabled(isGroup);
+       
+       editingQuery.setOwner(null);
+       editingQuery.setIsOwnerGroup(isGroup);
+       validateInput();
      }
    });
    
    selGroup = new ComboBox();
    selGroup.setContainerDataSource(groupsContainer);
    selGroup.setEnabled(false);
-   selGroup.addBlurListener(new FieldEvents.BlurListener()
+   selGroup.addValueChangeListener(new Property.ValueChangeListener()
    {
 
      @Override
-     public void blur(FieldEvents.BlurEvent event)
+     public void valueChange(Property.ValueChangeEvent event)
      {
-       group = (String) selGroup.getValue();
+       editingQuery.setOwner((String) selGroup.getValue());
+       validateInput();
      }
    });
    
    chkIsActive = new CheckBox("is active?");
+   chkIsActive.addValueChangeListener(new CheckBox.ValueChangeListener()
+   {
+
+     @Override
+     public void valueChange(Property.ValueChangeEvent event)
+     {
+       editingQuery.setIsActive(chkIsActive.getValue());
+       validateInput();
+     }
+   }
+);
    
    editLayout.addComponent(new Label("Owner/ Status"), 3, 0, 4, 0);
    editLayout.addComponent(chkIsGroup, 3, 1);
@@ -267,13 +275,14 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
    
    //Reset Button
    btnReset = new Button();
-   btnReset.setCaption("Reset data");
+   btnReset.setCaption("Abort");
    btnReset.addClickListener(new Button.ClickListener()
    {
 
      @Override
      public void buttonClick(Button.ClickEvent event)
      {
+       setEditingQuery(null);
        emptyNewQueryInputFields();
      }
    });
@@ -287,11 +296,16 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
      @Override
      public void buttonClick(Button.ClickEvent event)
      {
-       for (QueryListView.Listener l : listeners)
+       for (AutomatedQueryListView.Listener l : listeners)
      {
-             
-       l.addNewQuery(new AutomatedQuery(query.getValue(), corpora, schedulingPattern.getValue(), txtDescription.getValue(),
-        group, isGroup, chkIsActive.getValue()));
+       if (editing)
+          {
+            l.queryUpdated(editingQuery);
+          }
+       else
+         {
+           l.addNewQuery(editingQuery);
+         }
      }
      }
    });
@@ -331,13 +345,39 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
    {
 
      @Override
-     public Object generateCell(Table source, Object itemId, Object columnId)
+     public Object generateCell(final Table source, final Object itemId, Object columnId)
      {
        HorizontalLayout layout = new HorizontalLayout();
        Button btnEdit = new Button("Edit");
+       btnEdit.addClickListener(new Button.ClickListener()
+       {
+
+         @Override
+         public void buttonClick(Button.ClickEvent event)
+         {
+           BeanItem<AutomatedQuery> bean = (BeanItem<AutomatedQuery>) source.getItem(itemId);
+           
+           AutomatedQuery copyForEditing = new AutomatedQuery(bean.getBean());
+           setEditingQuery(copyForEditing);
+         }
+       });
        
        Button btnShowResults = new Button("Results");
-       layout.addComponents(btnEdit, btnShowResults);
+       
+       Button btnExecute = new Button("Execute now");
+       btnExecute.addClickListener(new Button.ClickListener()
+       {
+
+         @Override
+         public void buttonClick(Button.ClickEvent event)
+         {
+           AutomatedQuery query = ((BeanItem<AutomatedQuery>) source.getItem(itemId)).getBean();
+           queryController.setQuery(new Query(query.getQuery(), query.getCorpora()));
+           queryController.executeQuery();
+         }
+       });
+       
+       layout.addComponents(btnEdit, btnShowResults, btnExecute);
        return layout;
      }
    });
@@ -345,7 +385,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
    addComponent(tblQueries);
    setExpandRatio(tblQueries, 1.0f);
    
-   btnDelete = new Button("Delete Query");
+   btnDelete = new Button("Delete Queries");
    btnDelete.addClickListener(new Button.ClickListener()
    {
 
@@ -353,7 +393,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
      public void buttonClick(Button.ClickEvent event)
      {
        Set<UUID> queryIds = (Set<UUID>) tblQueries.getValue();
-      for (QueryListView.Listener l : listeners)
+      for (AutomatedQueryListView.Listener l : listeners)
       {
         l.deleteQueries(queryIds);
       }
@@ -361,15 +401,105 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
    });
    
    addComponent(btnDelete);
-   setQueryAndCorpora(queryController);
+   setQueryAndCorpusData(queryController);
+   setEditingQuery(null);
+ }
+ 
+ public void setEditingQuery(AutomatedQuery query)
+ {
+   if (query != null)
+   {
+     editing = true;
+     btnSubmit.setCaption("Save changes");
+     editingQuery = query;
+     queryController.setQuery(new Query(query.getQuery(), query.getCorpora()));
+     //synchronize data
+     fieldQuery.setValue(query.getQuery());
+     corpora = query.getCorpora();
+     lblSelectedCorpora.setValue(StringUtils.join(corpora, ", "));
+     txtDescription.setValue(query.getDescription());
+     schedulingPattern.setValue(query.getSchedulingPattern());
+     chkIsActive.setValue(query.getIsActive());
+     chkIsGroup.setValue(query.getIsOwnerGroup());
+     selGroup.setValue(query.getOwner());
+     validateInput();
+   }
+   else
+   {
+     editing = false;
+     btnSubmit.setCaption("Save query");
+     editingQuery = new AutomatedQuery(fieldQuery.getValue(), corpora);
+   }
+ }
+   
+ private void validateInput()
+ {
+   boolean valid = true;
+   StringBuilder sb = new StringBuilder();
+   //check all the things on editingQuery
+
+   if (editingQuery.getQuery() == null || editingQuery.getQuery().isEmpty())
+   {
+     sb.append("Query is empty. ");
+     valid = false;
+   }
+   
+   if (editingQuery.getCorpora() == null || editingQuery.getCorpora().isEmpty())
+   {
+     sb.append("No corpus selected. ");
+     valid = false;      
+   }
+   
+   if (editingQuery.getIsOwnerGroup() && (editingQuery.getOwner() == null || editingQuery.getOwner().isEmpty()))
+   {
+     sb.append("Owner is group, but no group selected. ");
+     valid = false;
+   }
+   
+   if (editingQuery.getSchedulingPattern() == null || editingQuery.getSchedulingPattern().isEmpty())
+   {
+     sb.append("Scheduling pattern empty. ");
+     txtNextExecution.setReadOnly(false);
+     txtNextExecution.setValue("Scheduling pattern empty.");
+     txtNextExecution.setReadOnly(true);
+     valid = false;
+   }
+   else if (SchedulingPattern.validate(editingQuery.getSchedulingPattern()))
+   {
+      Predictor p = new Predictor(editingQuery.getSchedulingPattern());
+          StringBuilder executions = new StringBuilder();
+          
+             for(int i = 0; i < 4; i++)
+             {
+               executions.append(p.nextMatchingDate());
+               executions.append("\n");
+             }
+             executions.append(p.nextMatchingDate());
+          txtNextExecution.setReadOnly(false);
+          txtNextExecution.setValue(executions.toString());      
+          txtNextExecution.setReadOnly(true);
+   }
+   else
+   {
+     sb.append("Scheduling Pattern invalid. ");
+     txtNextExecution.setReadOnly(false);
+     txtNextExecution.setValue("Scheduling pattern invalid.");
+     txtNextExecution.setReadOnly(true);
+     valid = false;
+   }
+   
+   btnSubmit.setEnabled(valid); 
+   String msg = valid? editingQuery.toString() : sb.toString();
+   lblStatus.setValue(msg);
  }
 
-  public void setQueryAndCorpora(final QueryController queryController) throws Property.ReadOnlyException
+  public void setQueryAndCorpusData(final QueryController queryController) throws Property.ReadOnlyException
   {
       corpora.clear();
       corpora.addAll(queryController.getSelectedCorpora());
       lblSelectedCorpora.setValue(StringUtils.join((corpora), ", "));
-      query.setValue(queryController.getQueryDraft());
+      fieldQuery.setValue(queryController.getQueryDraft());
+      
   }
  
   @Override
@@ -382,11 +512,13 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
   public void textChange(TextChangeEvent event)
   {
     //query Text in Panel changed
-    query.setValue(event.getText());    
+    fieldQuery.setValue(event.getText());
+    editingQuery.setQuery(event.getText());
+    validateInput();
   }
 
   @Override
-  public void addListener(QueryListView.Listener listener)
+  public void addListener(AutomatedQueryListView.Listener listener)
   {
       listeners.add(listener);
   }
@@ -406,7 +538,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
     chkIsActive.setValue(false);
     txtDescription.setValue("");
     txtNextExecution.setReadOnly(false);
-    txtNextExecution.setValue(SCHEDULING_INFO);
+    txtNextExecution.setValue("Scheduling pattern empty.");
     txtNextExecution.setReadOnly(true);
     btnSubmit.setEnabled(false);
   }
@@ -418,6 +550,8 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
     corpora.clear();
     corpora.addAll(selectedCorpora);
     lblSelectedCorpora.setValue(StringUtils.join((corpora), ", "));
+    editingQuery.setCorpora(corpora);
+    validateInput();
   }
 
   @Override
@@ -439,7 +573,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
       corpusContainer.addItem(c);
     }
   }
-  
+  /*
   public class FieldFactory extends DefaultFieldFactory
   {
     @Override
@@ -479,4 +613,5 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
       return result;
     }
   }
+  */
 }

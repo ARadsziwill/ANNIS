@@ -87,7 +87,27 @@ public class AutomatedQuery implements Serializable
     public AutomatedQuery(String query, TreeSet<String> corpusNames, String schedulingPattern, String description, String owner, boolean isOwnerGroup, boolean isActive) {
         this(query, corpusNames, schedulingPattern, description, owner, isOwnerGroup, isActive, UUID.randomUUID());
     }
+    
+    public AutomatedQuery(String query, TreeSet<String> corpusNames)
+    {
+      this(query, corpusNames, "", "", null, false, false);
+    }
 
+    /**
+     * Copy Constructor
+     */
+  public AutomatedQuery(AutomatedQuery q)
+  {
+    this(q.getQuery(),
+      new TreeSet<>(q.getCorpora()),
+      q.getSchedulingPattern(),
+      q.getDescription(),
+      q.getOwner(),
+      q.getIsOwnerGroup(),
+      q.getIsActive(),
+      q.getId());
+  }
+  
   public UUID getId()
   {
       return this.id;

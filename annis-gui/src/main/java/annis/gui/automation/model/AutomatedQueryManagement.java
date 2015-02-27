@@ -103,7 +103,7 @@ public class AutomatedQueryManagement
       }
       catch (UniformInterfaceException ex)
       {
-        log.warn("Could not update query", ex);
+        log.warn("Could not update query: " + ex.getResponse().getEntity(String.class), ex);
       }
     }
     return false;

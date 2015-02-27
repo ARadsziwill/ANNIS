@@ -23,7 +23,7 @@ import annis.gui.SearchUI;
 import annis.gui.admin.model.CorpusManagement;
 import annis.gui.admin.model.GroupManagement;
 import annis.gui.automation.QueryAutomationPanel;
-import annis.gui.automation.QueryListView;
+import annis.gui.automation.AutomatedQueryListView;
 import annis.gui.automation.controller.AutomatedQueryController;
 import annis.gui.automation.model.AutomatedQueryManagement;
 import annis.gui.beans.HistoryEntry;
@@ -621,9 +621,9 @@ public class QueryPanel extends GridLayout implements TextChangeListener,
           queryAutomationPanel);
   
         AutomatedQueryController aqc = new AutomatedQueryController(ui.getAutomatedQueryManagement(), new GroupManagement(), queryAutomationPanel, ui);
-        queryAutomationPanel.addListener((QueryListView.Listener) aqc);
+        queryAutomationPanel.addListener((AutomatedQueryListView.Listener) aqc);
       }
-      queryAutomationPanel.setQueryAndCorpora(controller);
+      queryAutomationPanel.setQueryAndCorpusData(controller);
       
       final TabSheet tabSheet = ui.getMainTab();
       Tab tab = tabSheet.getTab(queryAutomationPanel);

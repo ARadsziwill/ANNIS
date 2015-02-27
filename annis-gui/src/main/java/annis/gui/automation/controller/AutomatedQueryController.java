@@ -23,7 +23,7 @@ import annis.gui.admin.model.GroupManagement;
 import annis.gui.admin.view.GroupListView;
 import annis.gui.admin.view.UIView;
 import annis.gui.admin.view.UserListView;
-import annis.gui.automation.QueryListView;
+import annis.gui.automation.AutomatedQueryListView;
 import annis.gui.automation.model.AutomatedQueryManagement;
 import annis.security.Group;
 import annis.security.User;
@@ -38,19 +38,19 @@ import org.slf4j.LoggerFactory;
  *
  * @author Andreas Radsziwill <radsziwill@stud.tu-darmstadt.de>
  */
-public class AutomatedQueryController implements QueryListView.Listener, TabSheet.SelectedTabChangeListener
+public class AutomatedQueryController implements AutomatedQueryListView.Listener, TabSheet.SelectedTabChangeListener
 {
 
     private final Logger log = LoggerFactory.getLogger(AutomatedQueryController.class);
     
     private final AutomatedQueryManagement model;
     private final GroupManagement groupModel;
-    private final QueryListView view;
+    private final AutomatedQueryListView view;
     private final SearchUI ui;
     
     
     
-  public AutomatedQueryController(AutomatedQueryManagement model, GroupManagement groupModel, QueryListView view, SearchUI ui)
+  public AutomatedQueryController(AutomatedQueryManagement model, GroupManagement groupModel, AutomatedQueryListView view, SearchUI ui)
   {
     this.model = model;
     this.view = view;
@@ -127,7 +127,7 @@ public class AutomatedQueryController implements QueryListView.Listener, TabShee
     view.setQueryList(model.getQueries());
     view.setAvailableCorpusNames(ui.getControlPanel().getCorpusList().getVisibleCorpora());
     view.setAvailableGroups(groupModel.getGroupNames());
-    view.setQueryAndCorpora(ui.getQueryController());
+    view.setQueryAndCorpusData(ui.getQueryController());
   }
 
   @Override

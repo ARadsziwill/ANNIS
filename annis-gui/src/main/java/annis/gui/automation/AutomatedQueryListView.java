@@ -25,14 +25,14 @@ import java.util.UUID;
  *
  * @author Andreas
  */
-public interface QueryListView
+public interface AutomatedQueryListView
 {
   public void addListener(Listener listener);
   
   public void setQueryList(Collection<AutomatedQuery> queries);
   public void setAvailableGroups(Collection<String> groups);
   public void setAvailableCorpusNames(Collection<String> corpusNames);
-  public void setQueryAndCorpora(QueryController controller);
+  public void setQueryAndCorpusData(QueryController controller);
   
   public void emptyNewQueryInputFields();
   public void setStatus(String message);
