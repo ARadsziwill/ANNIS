@@ -197,8 +197,12 @@ public class AutomationServiceImpl /*implements AutomationService */
                         "No such group.").build());
             }
         }
-        else
+       else //personal query owner is probably null
         {
+            if (query.getOwner() == null)
+            {
+                query.setOwner(username);
+            }
             subject.checkPermission("schedule:write:user");
             if (!query.getOwner().equals(username))
             {
