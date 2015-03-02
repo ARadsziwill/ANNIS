@@ -26,6 +26,8 @@ import com.sun.jersey.api.client.GenericType;
 import com.sun.jersey.api.client.UniformInterfaceException;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  *
@@ -68,7 +70,30 @@ public class AutomatedQueryResultsManagement
       }
       catch (UniformInterfaceException ex)
       {
-        log.error("Could not get the list of results", ex);
+        log.error("Could not get the list of results:  " + ex.getResponse().getEntity(String.class), ex);
+      }
+    }
+    return false;
+  }
+  
+  public boolean deleteResults(Collection<UUID> ids, DateTime compareDate)
+  {
+    if (rootResource != null)
+    {
+      if (compareDate == null)
+      {
+        compareDate = new DateTime();
+      }
+      WebResource res = rootResource.path("automation/results/olderThan").queryParam("date", compareDate.toString()).queryParam("ids", StringUtils.join(ids, ","));
+
+      try
+      {
+        res.delete();
+        return true;
+      }
+      catch (UniformInterfaceException ex)
+      {
+        log.warn("Could not delete results\n " + ex.getResponse().getEntity(String.class), ex);
       }
     }
     return false;

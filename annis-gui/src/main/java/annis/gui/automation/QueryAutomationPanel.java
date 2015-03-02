@@ -20,6 +20,8 @@ import java.util.UUID;
 import annis.automation.AutomatedQuery;
 import annis.gui.CorpusSelectionChangeListener;
 import annis.gui.QueryController;
+import annis.gui.SearchUI;
+import annis.gui.automation.controller.AutomatedQueryResultsController;
 import annis.gui.components.HelpButton;
 import annis.gui.objects.Query;
 import com.vaadin.data.Property;
@@ -28,6 +30,7 @@ import com.vaadin.data.util.BeanItem;
 import com.vaadin.data.util.IndexedContainer;
 import com.vaadin.event.FieldEvents.TextChangeEvent;
 import com.vaadin.event.FieldEvents.TextChangeListener;
+import com.vaadin.server.FontAwesome;
 import com.vaadin.shared.ui.label.ContentMode;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
@@ -37,6 +40,8 @@ import com.vaadin.ui.GridLayout;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Panel;
+import com.vaadin.ui.TabSheet;
+import com.vaadin.ui.TabSheet.Tab;
 import com.vaadin.ui.Table;
 import com.vaadin.ui.TextArea;
 import com.vaadin.ui.TextField;
@@ -83,7 +88,6 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
   private final IndexedContainer groupsContainer = new IndexedContainer();
   private final IndexedContainer corpusContainer = new IndexedContainer();
   
-  private final QueryController queryController;
   //newQuery data
   private AutomatedQuery editingQuery;
   private boolean editing; 
@@ -99,14 +103,9 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
   private final TextField schedulingPattern;
   private final TextArea txtNextExecution;
  
-  
- // private final SchedulingPatternWidget patternBuilder;
-  
- 
   private final CheckBox chkIsGroup;
   private final ComboBox selGroup;
   private final CheckBox chkIsActive;
-  
   
   private final Button btnSubmit;
   private final Button btnReset;  
@@ -117,10 +116,16 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
   
   private final Button btnDelete;
   
- public QueryAutomationPanel(final QueryController queryController) 
+  //Other components
+  private ResultsViewPanel resultsView;
+  private final QueryController queryController;
+  private final SearchUI searchUI;
+  
+ public QueryAutomationPanel(final QueryController queryController, final SearchUI ui) 
  {
    this.queryController = queryController;
-   
+   this.searchUI = ui;
+     
    setWidth("99%");
    setHeight("99%");
    setMargin(true);
@@ -348,7 +353,33 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
        });
        
        Button btnShowResults = new Button("Results");
-       
+       btnShowResults.addClickListener(new Button.ClickListener()
+       {
+
+         @Override
+         public void buttonClick(Button.ClickEvent event)
+         {
+           if (resultsView == null)
+           {
+             resultsView = new ResultsViewPanel();
+             AutomatedQueryResultsController aqrc = new AutomatedQueryResultsController(resultsView, ui.getAutomatedQueryResultsManagement());
+             resultsView.addListener(aqrc);
+           }
+           BeanItem<AutomatedQuery> beanItem = (BeanItem<AutomatedQuery>) source.getItem(itemId);
+          resultsView.setActiveQuery(beanItem.getBean().getId());
+          final TabSheet tabSheet = searchUI.getMainTab();
+          Tab tab = tabSheet.getTab(resultsView);
+          
+          if (tab == null)
+          {
+            tab = tabSheet.addTab(resultsView, "Automated Query Results");
+            tab.setIcon(FontAwesome.TABLE);
+          }
+          tab.setClosable(true);
+          tabSheet.setSelectedTab(resultsView);
+         }
+       });
+              
        Button btnExecute = new Button("Execute now");
        btnExecute.addClickListener(new Button.ClickListener()
        {
@@ -381,6 +412,10 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
       for (AutomatedQueryListView.Listener l : listeners)
       {
         l.deleteQueries(queryIds);
+      }
+      for (UUID id : queryIds)
+      {
+        tblQueries.unselect(id);
       }
      }
    });
@@ -420,7 +455,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
  private void validateInput()
  {
    boolean valid = true;
-   StringBuilder sb = new StringBuilder();
+   StringBuilder sb = new StringBuilder("Input invalid: ");
    //check all the things on editingQuery
 
    if (editingQuery.getQuery() == null || editingQuery.getQuery().isEmpty())
@@ -474,7 +509,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
    }
    
    btnSubmit.setEnabled(valid); 
-   String msg = valid? editingQuery.toString() : sb.toString();
+   String msg = valid? "Input is valid." : sb.toString();
    lblStatus.setValue(msg);
  }
 

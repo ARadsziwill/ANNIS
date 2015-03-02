@@ -615,13 +615,13 @@ public class QueryPanel extends GridLayout implements TextChangeListener,
       
       if (queryAutomationPanel == null)
       {
-        queryAutomationPanel =  new QueryAutomationPanel(controller);
+        queryAutomationPanel =  new QueryAutomationPanel(controller, ui);
         txtQuery.addTextChangeListener(queryAutomationPanel);
-        ui.getQueryController().addCorpusSelectionChangeListener(
+        controller.addCorpusSelectionChangeListener(
           queryAutomationPanel);
   
         AutomatedQueryController aqc = new AutomatedQueryController(ui.getAutomatedQueryManagement(), new GroupManagement(), queryAutomationPanel, ui);
-        queryAutomationPanel.addListener((AutomatedQueryListView.Listener) aqc);
+        queryAutomationPanel.addListener(aqc);
       }
       queryAutomationPanel.setQueryAndCorpusData(controller);
       

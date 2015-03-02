@@ -61,4 +61,17 @@ public class AutomatedQueryResult implements Serializable{
     public String getResult() {
         return result;
     }  
+    
+    @Override
+    public boolean equals(Object o)
+    {
+      if (o instanceof AutomatedQueryResult)
+      {
+        return ((AutomatedQueryResult) o).getExecuted().isEqual(this.getExecuted());
+      }
+      else 
+      {
+        return false;
+      }
+    }
 }
