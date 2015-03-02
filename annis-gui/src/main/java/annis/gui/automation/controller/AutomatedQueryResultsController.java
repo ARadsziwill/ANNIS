@@ -18,6 +18,7 @@ package annis.gui.automation.controller;
 
 import annis.gui.automation.ResultsListView;
 import annis.gui.automation.model.AutomatedQueryResultsManagement;
+import com.vaadin.ui.TabSheet;
 import java.util.Collection;
 import java.util.UUID;
 import org.joda.time.DateTime;
@@ -28,7 +29,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author Andreas
  */
-public class AutomatedQueryResultsController implements ResultsListView.Listener 
+public class AutomatedQueryResultsController implements ResultsListView.Listener, TabSheet.SelectedTabChangeListener 
 {
 
     private final Logger log = LoggerFactory.getLogger(AutomatedQueryResultsController.class);
@@ -40,7 +41,7 @@ public class AutomatedQueryResultsController implements ResultsListView.Listener
   {
     this.model = model;
     this.view = view;
-    reloadView();
+    fetchFromService();
   }
         
   @Override
@@ -48,13 +49,22 @@ public class AutomatedQueryResultsController implements ResultsListView.Listener
   {
     log.info("deleting: " + ids + " older than " + date);
     model.deleteResults(ids, date);
-    reloadView();
+    fetchFromService();
   }
     
-  private void reloadView()
+  public void fetchFromService()
   {
     model.fetchFromService();
     view.setResults(model.getResults());
+  }
+
+  @Override
+  public void selectedTabChange(TabSheet.SelectedTabChangeEvent event)
+  {
+    if (event.getTabSheet().getSelectedTab().equals(view))
+    {
+      fetchFromService();
+    }
   }
     
 }

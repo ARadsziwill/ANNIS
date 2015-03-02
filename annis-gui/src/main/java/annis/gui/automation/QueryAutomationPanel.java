@@ -364,6 +364,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
              resultsView = new ResultsViewPanel();
              AutomatedQueryResultsController aqrc = new AutomatedQueryResultsController(resultsView, ui.getAutomatedQueryResultsManagement());
              resultsView.addListener(aqrc);
+             ui.getMainTab().addSelectedTabChangeListener(aqrc);
            }
            BeanItem<AutomatedQuery> beanItem = (BeanItem<AutomatedQuery>) source.getItem(itemId);
           resultsView.setActiveQuery(beanItem.getBean().getId());
