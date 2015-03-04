@@ -274,6 +274,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
      {
        setEditingQuery(null);
        emptyNewQueryInputFields();
+       lblStatus.setValue("Enter your query and choose corpora from the list on the left. Enter a valid cron scheduling pattern and choose the owner for your query above.");
      }
    });
       //Submit Button
@@ -561,6 +562,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
     txtNextExecution.setReadOnly(false);
     txtNextExecution.setValue("Scheduling pattern empty.");
     txtNextExecution.setReadOnly(true);
+    btnSubmit.setCaption("Save Query");
     btnSubmit.setEnabled(false);
   }
 

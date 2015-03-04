@@ -20,6 +20,7 @@ import annis.gui.admin.OptionalDateTimeField;
 import com.vaadin.data.util.BeanContainer;
 import com.vaadin.data.util.BeanItem;
 import com.vaadin.ui.Button;
+import com.vaadin.ui.Notification;
 import com.vaadin.ui.Table;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.themes.ChameleonTheme;
@@ -82,7 +83,15 @@ public class ResultsViewPanel extends VerticalLayout implements ResultsListView
       {
         Set<DateTime> exeDates = (Set<DateTime>) tblResults.getValue();
         Set<UUID> ids = new HashSet<>();
-          
+                
+        if (exeDates == null || exeDates.isEmpty())
+        {
+          Notification not = new Notification("Nothing selected", "You have to select one of the results that should be deleted",
+            Notification.Type.ERROR_MESSAGE, true);
+            not.show(getUI().getPage());
+            return;
+        }
+        
         log.info("Dates: " + exeDates);
         for (DateTime date : exeDates)
         {

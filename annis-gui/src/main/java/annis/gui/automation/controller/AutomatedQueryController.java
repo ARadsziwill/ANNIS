@@ -72,6 +72,7 @@ public class AutomatedQueryController implements AutomatedQueryListView.Listener
     if(model.updateAutomatedQuery(query))
     {
       view.setStatus("Query saved");
+      view.emptyNewQueryInputFields();
     }
     else
     {
