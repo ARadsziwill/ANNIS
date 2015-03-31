@@ -55,6 +55,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import org.apache.commons.lang3.StringUtils;
 import it.sauronsoftware.cron4j.SchedulingPattern;
+import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +88,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
   
   private final IndexedContainer groupsContainer = new IndexedContainer();
   private final IndexedContainer corpusContainer = new IndexedContainer();
-  
+  private final List<AutomatedQuery.Type> typeOptions;
   //newQuery data
   private AutomatedQuery editingQuery;
   private boolean editing; 
@@ -106,7 +107,8 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
   private final CheckBox chkIsGroup;
   private final ComboBox selGroup;
   private final CheckBox chkIsActive;
-  
+  private final ComboBox selType;
+    
   private final Button btnSubmit;
   private final Button btnReset;  
  
@@ -226,7 +228,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
        selGroup.setEnabled(isGroup);
        
        editingQuery.setOwner(null);
-       editingQuery.setIsOwnerGroup(isGroup);
+       editingQuery.setIsGroup(isGroup);
        validateInput();
      }
    });
@@ -257,11 +259,30 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
      }
    }
 );
+
+   typeOptions = new ArrayList<>(AutomatedQuery.Type.values().length);
+   for (AutomatedQuery.Type t : AutomatedQuery.Type.values())
+   {
+     typeOptions.add(t);
+   }
+   
+   selType = new ComboBox("Type", typeOptions);
+   selType.addValueChangeListener(new Property.ValueChangeListener()
+   {
+
+     @Override
+     public void valueChange(Property.ValueChangeEvent event)
+     {
+        editingQuery.setType((AutomatedQuery.Type) event.getProperty().getValue());
+        validateInput();
+     }
+   });
    
    editLayout.addComponent(new Label("Owner/ Status"), 3, 0, 4, 0);
    editLayout.addComponent(chkIsGroup, 3, 1);
    editLayout.addComponent(selGroup, 4, 1);
    editLayout.addComponent(chkIsActive, 3, 2);
+   editLayout.addComponent(selType, 4, 2);
    
    //Reset Button
    btnReset = new Button();
@@ -329,7 +350,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
    
    //tblQueries.setTableFieldFactory(new FieldFactory());
    
-   tblQueries.setVisibleColumns("corpora", "query", "description", "schedulingPattern", "isOwnerGroup", "owner", "isActive");
+   tblQueries.setVisibleColumns("corpora", "query", "description", "schedulingPattern", "isGroup", "owner", "isActive");
    tblQueries.setColumnHeaders("Corpora", "Query", "Description", "Scheduling Pattern", "Assigned To Group?", "Owner", "Is Active?");
    
    tblQueries.addGeneratedColumn("Action", new Table.ColumnGenerator()
@@ -442,7 +463,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
      txtDescription.setValue(query.getDescription());
      schedulingPattern.setValue(query.getSchedulingPattern());
      chkIsActive.setValue(query.getIsActive());
-     chkIsGroup.setValue(query.getIsOwnerGroup());
+     chkIsGroup.setValue(query.getIsGroup());
      selGroup.setValue(query.getOwner());
      validateInput();
    }
@@ -472,7 +493,7 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
      valid = false;      
    }
    
-   if (editingQuery.getIsOwnerGroup() && (editingQuery.getOwner() == null || editingQuery.getOwner().isEmpty()))
+   if (editingQuery.getIsGroup() && (editingQuery.getOwner() == null || editingQuery.getOwner().isEmpty()))
    {
      sb.append("Owner is group, but no group selected. ");
      valid = false;
@@ -507,6 +528,12 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
      txtNextExecution.setReadOnly(false);
      txtNextExecution.setValue("Scheduling pattern invalid.");
      txtNextExecution.setReadOnly(true);
+     valid = false;
+   }
+   
+   if (editingQuery.getType() == null)
+   {
+     sb.append("No query type selected. ");
      valid = false;
    }
    
@@ -562,8 +589,10 @@ public class QueryAutomationPanel extends VerticalLayout implements TextChangeLi
     txtNextExecution.setReadOnly(false);
     txtNextExecution.setValue("Scheduling pattern empty.");
     txtNextExecution.setReadOnly(true);
-    btnSubmit.setCaption("Save Query");
+    selType.setValue(null);
+    selGroup.setValue(null);
     btnSubmit.setEnabled(false);
+    setEditingQuery(null);
   }
 
 

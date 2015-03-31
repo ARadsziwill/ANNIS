@@ -18,8 +18,7 @@ package annis.automation.scheduling;
 import annis.automation.AutomatedQuery;
 import annis.automation.AutomatedQueryResult;
 import annis.dao.AnnisDao;
-import com.google.common.collect.ImmutableList;
-import it.sauronsoftware.cron4j.TaskCollector;
+import it.sauronsoftware.cron4j.Scheduler;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
@@ -38,7 +37,7 @@ import org.slf4j.LoggerFactory;
  * 
  * @author Andreas
  */
-public class AnnisSchedulerImpl extends AnnisScheduler  {
+public class AnnisSchedulerImpl extends Scheduler implements AnnisScheduler  {
     
     private final static Logger log = LoggerFactory.getLogger(AnnisSchedulerImpl.class);
     private AnnisDao annisDao;
@@ -184,7 +183,7 @@ public class AnnisSchedulerImpl extends AnnisScheduler  {
    @Override
    public boolean addAutomatedQuery(AutomatedQuery query)
    {
-       if (query.getIsOwnerGroup())
+       if (query.getIsGroup())
        {
            return addAutomatedGroupQuery(query);
        }
@@ -198,7 +197,7 @@ public class AnnisSchedulerImpl extends AnnisScheduler  {
    @Override
    public boolean updateAutomatedQuery(AutomatedQuery query, AutomatedQuery old)
    {
-       if ((!query.getIsOwnerGroup() ^ old.getIsOwnerGroup()) &&    //!xor  
+       if ((!query.getIsGroup() ^ old.getIsGroup()) &&    //!xor  
                old.getOwner().equals(query.getOwner()))
             // both are user or both are group query  AND
             // both owners are the same
@@ -230,7 +229,7 @@ public class AnnisSchedulerImpl extends AnnisScheduler  {
             catch (Exception ex)
             {
                 //try to revert
-                oldCollector.addTask(new AutomatedCountQueryTask(old));
+                oldCollector.addTask(AutomatedQueryTask.create(old));
                 deleteQuery(query);
                 return false;
             }
@@ -239,7 +238,7 @@ public class AnnisSchedulerImpl extends AnnisScheduler  {
    
    private boolean updateAutomatedQuery(AutomatedQuery query)
    {
-       if (query.getIsOwnerGroup())
+       if (query.getIsGroup())
        {
            return updateAutomatedGroupQuery(query);
        }
@@ -256,7 +255,7 @@ public class AnnisSchedulerImpl extends AnnisScheduler  {
        
        if (collector != null)
        {
-           return collector.addTask(new AutomatedCountQueryTask(query));
+           return collector.addTask(AutomatedQueryTask.create(query));
        }
        return false;
    }
@@ -268,7 +267,7 @@ public class AnnisSchedulerImpl extends AnnisScheduler  {
        
        if (collector != null)
        {
-           return collector.addTask(new AutomatedCountQueryTask(query));
+           return collector.addTask(AutomatedQueryTask.create(query));
        }
        return false;
    }
@@ -300,7 +299,7 @@ public class AnnisSchedulerImpl extends AnnisScheduler  {
                 return false;
            }
        }
-          return collector.addTask(new AutomatedCountQueryTask(query));       
+          return collector.addTask(AutomatedQueryTask.create(query));       
      }
 
     private boolean addAutomatedGroupQuery(AutomatedQuery query) {
@@ -330,7 +329,7 @@ public class AnnisSchedulerImpl extends AnnisScheduler  {
                 return false;
            }
        }
-       return collector.addTask(new AutomatedCountQueryTask(query));  
+       return collector.addTask(AutomatedQueryTask.create(query));  
     }
         
     
@@ -384,13 +383,13 @@ public class AnnisSchedulerImpl extends AnnisScheduler  {
         
         for (AutomatedQueryResult candidate : possibles)
         {
-            if(candidate.getQuery().getIsOwnerGroup() &&
+            if(candidate.getQuery().getIsGroup() &&
                     groups.contains(candidate.getQuery().getOwner()))
             {
                 result.add(candidate);
                 continue; //with the next candidate as the next check will be false anyway
             }
-            if (!candidate.getQuery().getIsOwnerGroup() && 
+            if (!candidate.getQuery().getIsGroup() && 
                     user.equals(candidate.getQuery().getOwner()))
             {
                 result.add(candidate);
@@ -405,7 +404,7 @@ public class AnnisSchedulerImpl extends AnnisScheduler  {
         
         for (AutomatedQueryResult candidate : possibles)
         {
-            if (!candidate.getQuery().getIsOwnerGroup() && 
+            if (!candidate.getQuery().getIsGroup() && 
                     candidate.getQuery().getOwner().equals(username))
             {
                 result.add(candidate);
@@ -429,6 +428,11 @@ public class AnnisSchedulerImpl extends AnnisScheduler  {
         return baseDir;
     }
 
+    public void deleteResults(List<AutomatedQueryResult> results)
+    {
+        this.results.deleteAll(results);
+    }
+    
     @Override
     public void deleteResults(DateTime date, Set<UUID> ids) 
     {
@@ -437,7 +441,7 @@ public class AnnisSchedulerImpl extends AnnisScheduler  {
         List<AutomatedQueryResult> toDelete = filter(allResults, ids, date);
         
         results.deleteAll(toDelete);
-    }
+    } 
     
     private List<AutomatedQueryResult> filter(List<AutomatedQueryResult> source, Set<UUID> queryIds, DateTime date)
     {

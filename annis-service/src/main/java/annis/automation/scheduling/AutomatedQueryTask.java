@@ -17,13 +17,13 @@ package annis.automation.scheduling;
 
 import annis.automation.AutomatedQuery;
 import annis.automation.AutomatedQueryResult;
+import annis.automation.ResultWrapper;
 import annis.ql.parser.QueryData;
 import annis.utils.Utils;
 import it.sauronsoftware.cron4j.Task;
 import it.sauronsoftware.cron4j.TaskExecutionContext;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collections;
 import org.joda.time.DateTime;
 import java.util.List;
 import org.slf4j.Logger;
@@ -53,7 +53,18 @@ public abstract class AutomatedQueryTask extends Task implements Serializable {
     {
         return this.query;
     }
-
+    
+    public static AutomatedQueryTask create(AutomatedQuery query)
+    {
+        switch (query.getType()) 
+        {
+            case FIND : return new AutomatedFindQueryTask(query);
+            case FREQUENCY : return new AutomatedFrequencyQueryTask(query);
+            case COUNT :
+            default: return new AutomatedCountQueryTask(query);
+       }
+    }
+    
     /**
      *  This method is final to ensure subclasses of  AutomatedQueryTask only 
      *  call doExecute when the associated query is active.
@@ -75,16 +86,16 @@ public abstract class AutomatedQueryTask extends Task implements Serializable {
             {
                 ;
             }
-            String result = doExecute(tec);
+            ResultWrapper result = doExecute(tec);
             if (tec.getScheduler() instanceof AnnisScheduler)
             {
                 AnnisScheduler scheduler = (AnnisScheduler) tec.getScheduler();
-                scheduler.addResult(new AutomatedQueryResult(query, result, new DateTime()));
+                scheduler.addResult(new AutomatedQueryResult(query, new ResultWrapper(result), new DateTime()));
             }
         }
     }
     
-    abstract String doExecute(TaskExecutionContext tec);
+    protected abstract ResultWrapper doExecute(TaskExecutionContext tec);
     
     QueryData calculateQueryData(TaskExecutionContext tec) 
     {

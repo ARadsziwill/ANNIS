@@ -28,23 +28,22 @@ import org.joda.time.DateTime;
  *
  * @author Andreas
  */
-public abstract class AnnisScheduler extends Scheduler {
+public interface AnnisScheduler {
     
-    public abstract List<AutomatedQueryResult> getQueryResults(List<String> filters);
-    public abstract void addResult(AutomatedQueryResult result);
+    public List<AutomatedQueryResult> getQueryResults(List<String> filters);
+    public void addResult(AutomatedQueryResult result);
+    public void deleteResults(DateTime date, Set<UUID> ids);
+        
+    public List<AutomatedQuery> getGroupQueries(String groupname);
+    public List<AutomatedQuery> getUserQueries(String username);
+    public boolean addAutomatedQuery(AutomatedQuery query);
     
-    public abstract List<AutomatedQuery> getGroupQueries(String groupname);
-    public abstract List<AutomatedQuery> getUserQueries(String username);
-    public abstract boolean addAutomatedQuery(AutomatedQuery query);
-
-    public abstract AnnisDao getAnnisDao();
+    public boolean idExists(UUID id);
+    public AutomatedQuery getQuery(UUID id);
     
-    public abstract boolean idExists(UUID id);
-    public abstract AutomatedQuery getQuery(UUID id);
-    
-    public abstract boolean deleteQuery(AutomatedQuery query);
-    public abstract boolean updateAutomatedQuery(AutomatedQuery query, AutomatedQuery old);
-
-    public abstract void deleteResults(DateTime date, Set<UUID> ids);
-    
+    public boolean deleteQuery(AutomatedQuery query);
+    public boolean updateAutomatedQuery(AutomatedQuery query, AutomatedQuery old);
+ 
+    public AnnisDao getAnnisDao();
+   
 }

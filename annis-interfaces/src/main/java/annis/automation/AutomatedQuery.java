@@ -19,7 +19,7 @@ import annis.adapter.TreeSetAdapter;
 import annis.adapter.UUIDAdapter;
 import java.io.Serializable;
 import java.util.Iterator;
-import java.util.Set;
+import java.util.Properties;
 import java.util.TreeSet;
 import java.util.UUID;
 import javax.xml.bind.annotation.XmlAccessType;
@@ -28,10 +28,11 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * A POJO representing an automated Query 
- * @author Andreas
+ * @author Andreas Radsziwill <radsziwill@stud.tu-darmstadt.de>
  */
 
 @XmlRootElement
@@ -46,23 +47,25 @@ public class AutomatedQuery implements Serializable
     private String query;
     @XmlAttribute
     private String schedulingPattern;
+    @XmlElement
+    private Type type;
     
     @XmlJavaTypeAdapter(UUIDAdapter.class)
     @XmlElement
     private final UUID id;
     @XmlElement(required = true)
-    private Boolean isOwnerGroup; 
+    private Boolean isGroup; 
     @XmlElement(required = true)
     private Boolean isActive;
      
     @XmlJavaTypeAdapter(TreeSetAdapter.class)
     @XmlElement(name="corpora")
-    private TreeSet<String> corpora;
+    private TreeSet<String> corpora = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
     
     
     private AutomatedQuery()
     {
-        this(null, null, null, null, null, null, null, null);
+        this(null, null, null, null, null, null, null, null, null);
     }
     
     public AutomatedQuery(String query,
@@ -72,6 +75,7 @@ public class AutomatedQuery implements Serializable
             String owner,
             Boolean isOwnerGroup,
             Boolean isActive,
+            Type type,
             UUID id)
     {
       this.query = query;
@@ -79,20 +83,40 @@ public class AutomatedQuery implements Serializable
       this.schedulingPattern = schedulingPattern;
       this.description = description;
       this.owner = owner;
-      this.isOwnerGroup = isOwnerGroup;
+      this.isGroup = isOwnerGroup;
       this.isActive = isActive;
+      this.type = type;
       this.id = id;
     }
 
-    public AutomatedQuery(String query, TreeSet<String> corpusNames, String schedulingPattern, String description, String owner, boolean isOwnerGroup, boolean isActive) {
-        this(query, corpusNames, schedulingPattern, description, owner, isOwnerGroup, isActive, UUID.randomUUID());
+    public AutomatedQuery(String query, TreeSet<String> corpusNames, String schedulingPattern, String description, String owner, boolean isOwnerGroup, boolean isActive, Type type) {
+        this(query, corpusNames, schedulingPattern, description, owner, isOwnerGroup, isActive, type, UUID.randomUUID());
     }
     
     public AutomatedQuery(String query, TreeSet<String> corpusNames)
     {
-      this(query, corpusNames, "", "", null, false, false);
+      this(query, corpusNames, "", "", null, false, false, Type.COUNT);
     }
 
+    public AutomatedQuery(Properties props)
+    {
+      this.query = props.getProperty("query");
+      this.description = props.getProperty("description");
+      this.id = UUID.fromString(props.getProperty("id"));
+      this.schedulingPattern = props.getProperty("schedulingPattern");
+      this.owner = props.getProperty("owner");
+      this.isActive = Boolean.parseBoolean(props.getProperty("isActive"));
+      this.isGroup = Boolean.parseBoolean(props.getProperty("isGroup"));
+      
+      String corporaRaw = props.getProperty("corpora");
+      for (String c : StringUtils.split(corporaRaw, ","))
+      {
+        this.corpora.add(c);
+      }
+      this.type = Type.valueOf(props.getProperty("type"));
+      
+    }
+    
     /**
      * Copy Constructor
      */
@@ -103,8 +127,9 @@ public class AutomatedQuery implements Serializable
       q.getSchedulingPattern(),
       q.getDescription(),
       q.getOwner(),
-      q.getIsOwnerGroup(),
+      q.getIsGroup(),
       q.getIsActive(),
+      q.getType(),
       q.getId());
   }
   
@@ -133,14 +158,14 @@ public class AutomatedQuery implements Serializable
     this.corpora = corpora;
   }
 
-  public boolean getIsOwnerGroup()
+  public boolean getIsGroup()
   {
-    return isOwnerGroup;
+    return isGroup;
   }
 
-  public void setIsOwnerGroup(boolean isOwnerGroup)
+  public void setIsGroup(boolean isOwnerGroup)
   {
-    this.isOwnerGroup = isOwnerGroup;
+    this.isGroup = isOwnerGroup;
   }
     public String getOwner()
   {
@@ -181,6 +206,16 @@ public class AutomatedQuery implements Serializable
         this.description = description;
     }
     
+    public Type getType()
+    {
+      return type;
+    }
+    
+    public void setType(Type type)
+    {
+      this.type = type;
+    }
+    
     /**
      * Checks for @code{null} properties and sets some default values if necessary
      * 
@@ -199,11 +234,53 @@ public class AutomatedQuery implements Serializable
       if (owner == null || owner.isEmpty())
       {
            setOwner(username);
-           setIsOwnerGroup(false);
+           setIsGroup(false);
        }
-       isOwnerGroup = (isOwnerGroup == null)? false : isOwnerGroup;
+       isGroup = (isGroup == null)? false : isGroup;
        isActive = (isActive == null)? false : isActive;
        description = (description == null)? "" : description;      
+    }
+    
+    public Properties toProperties()
+    {
+      Properties props = new Properties();
+      if(query != null)
+        {
+         props.put("query", query);
+        }
+      if(corpora != null && !corpora.isEmpty())
+      {
+        props.put("corpora", StringUtils.join(corpora, ","));
+      }
+      if(description != null)
+      {
+        props.put("description", description);          
+      }
+      if(schedulingPattern != null)
+      {
+        props.put("schedulingPattern", schedulingPattern);
+      }
+      if(id != null)
+      {
+        props.put("id", id.toString());
+      }
+      if(owner != null)
+      {
+        props.put("owner", owner);
+      }
+      if(isGroup != null)
+      {
+        props.put("isGroup", isGroup);
+      }
+      if(isActive != null)
+      {
+        props.put("isActive", isActive);
+      }
+      if(type != null)
+      {
+        props.put("type", type);
+      }
+      return props;
     }
     
     @Override
@@ -224,10 +301,15 @@ public class AutomatedQuery implements Serializable
             sb.append(", " + (String) it.next());
         }
         sb.append("], owner: " + owner);
-        sb.append(", isOwnerGroup: " + isOwnerGroup);
+        sb.append(", isOwnerGroup: " + isGroup);
         sb.append(", isActive: " + isActive);
         
         sb.append("}");
         return sb.toString();
+    }
+    
+    public enum Type 
+    {
+      COUNT, FIND, FREQUENCY
     }
 }

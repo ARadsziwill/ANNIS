@@ -13,34 +13,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package annis.automation.scheduling;
 
 import annis.automation.AutomatedQuery;
 import annis.automation.ResultWrapper;
-import annis.service.objects.MatchAndDocumentCount;
+import annis.service.objects.MatchGroup;
 import it.sauronsoftware.cron4j.TaskExecutionContext;
 import java.io.Serializable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author Andreas
  */
-public class AutomatedCountQueryTask extends AutomatedQueryTask{
+public class AutomatedFindQueryTask extends AutomatedQueryTask
+{
 
-    public AutomatedCountQueryTask(AutomatedQuery query) {
+    public AutomatedFindQueryTask(AutomatedQuery query)
+    {
         super(query);
     }
     
+    private final Logger log = LoggerFactory.getLogger(AutomatedFindQueryTask.class);
+
     @Override
-    protected ResultWrapper doExecute(TaskExecutionContext tec) throws RuntimeException {
-        if (tec.getScheduler() instanceof AnnisScheduler)
-            {
-                AnnisScheduler scheduler = (AnnisScheduler) tec.getScheduler();
-                MatchAndDocumentCount result = scheduler.getAnnisDao().countMatchesAndDocuments(this.calculateQueryData(tec));
-                return new ResultWrapper<>(result);
-            }
+    protected ResultWrapper doExecute(TaskExecutionContext tec) 
+    {
+        if(tec.getScheduler() instanceof AnnisScheduler)
+        {
+            AnnisScheduler scheduler = (AnnisScheduler) tec.getScheduler();
+
+            MatchGroup matches = new MatchGroup(scheduler.getAnnisDao().find(this.calculateQueryData(tec)));
+            
+            return new ResultWrapper<>(matches);
+        }
         throw new RuntimeException("Wrong kind of Scheduler. "
                 + "Must be an an Implementation of AnnisScheduler");
-        }
-    
+    }
 }

@@ -103,5 +103,24 @@ public class AutomatedQueryResultsManagement
   {
     this.rootResource = rootResource;
   }
+
+  public boolean deleteResults(Collection<DateTime> dates)
+  {
+    if (rootResource != null)
+    {
+      WebResource res = rootResource.path("automation/results").queryParam("dates", StringUtils.join(dates, ","));
+      
+      try 
+      {
+        res.delete();
+        return true;
+      }
+      catch (UniformInterfaceException ex)
+      {
+         log.warn("Could not delete results\n " + ex.getResponse().getEntity(String.class), ex);
+      }
+    }
+    return false;
+  }
   
 }

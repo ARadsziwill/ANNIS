@@ -47,8 +47,14 @@ public class AutomatedQueryResultsController implements ResultsListView.Listener
   @Override
   public void deleteResults(Collection<UUID> ids, DateTime date)
   {
-    log.info("deleting: " + ids + " older than " + date);
     model.deleteResults(ids, date);
+    fetchFromService();
+  }
+  
+  @Override
+  public void deleteResults(Collection<DateTime> dates)
+  {
+    model.deleteResults(dates);
     fetchFromService();
   }
     

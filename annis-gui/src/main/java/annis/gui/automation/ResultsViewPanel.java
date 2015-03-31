@@ -31,6 +31,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,16 +92,22 @@ public class ResultsViewPanel extends VerticalLayout implements ResultsListView
             not.show(getUI().getPage());
             return;
         }
-        
-        log.info("Dates: " + exeDates);
-        for (DateTime date : exeDates)
+        if (dateDeleteOlder.getValue() == null)
         {
-          ids.add(((BeanItem<AutomatedQueryResult>) tblResults.getItem(date)).getBean().getQuery().getId());
+          for (ResultsListView.Listener l : listeners)
+          {
+            l.deleteResults(exeDates);
+          }
         }
-        for (ResultsListView.Listener l : listeners)
-        {
-          log.info("deleting: " + ids + " older than " + dateDeleteOlder.getValue());
-          l.deleteResults(ids, dateDeleteOlder.getValue());
+        else{
+          for (DateTime date : exeDates)
+          {
+            ids.add(((BeanItem<AutomatedQueryResult>) tblResults.getItem(date)).getBean().getQuery().getId());
+          }
+          for (ResultsListView.Listener l : listeners)
+          {
+            l.deleteResults(ids, dateDeleteOlder.getValue());
+          }
         }
         for (DateTime date : exeDates)
         {
@@ -121,7 +128,6 @@ public class ResultsViewPanel extends VerticalLayout implements ResultsListView
     {
       DateTime date = it.next();
       AutomatedQueryResult res = ((BeanItem<AutomatedQueryResult>) tblResults.getItem(date)).getBean();
-      log.info(res.toString());
       
       if (res != null && res.getQuery()
         .getId().equals(id))

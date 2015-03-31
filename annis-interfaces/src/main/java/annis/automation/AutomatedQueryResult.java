@@ -37,14 +37,14 @@ public class AutomatedQueryResult implements Serializable{
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     private final DateTime executed;
     @XmlElement(required = true)
-    private final String result;
+    private final ResultWrapper result;
 
     private AutomatedQueryResult()
     {
         this(null, null, null);
     }
             
-    public AutomatedQueryResult(AutomatedQuery query, String result, DateTime date) {
+    public AutomatedQueryResult(AutomatedQuery query, ResultWrapper result, DateTime date) {
         this.executed = date;
         this.query = query;
         this.result = result;
@@ -58,7 +58,7 @@ public class AutomatedQueryResult implements Serializable{
         return executed;
     }
 
-    public String getResult() {
+    public ResultWrapper getResult() {
         return result;
     }  
     

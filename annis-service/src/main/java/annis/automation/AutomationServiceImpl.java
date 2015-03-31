@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -41,6 +42,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.subject.Subject;
 import org.joda.time.DateTime;
@@ -64,7 +66,7 @@ public class AutomationServiceImpl /*implements AutomationService */
    private final static Logger log = LoggerFactory.getLogger(
            AutomationServiceImpl.class);
    
-   private AnnisScheduler scheduler; 
+   private AnnisSchedulerImpl scheduler; 
    private AutomatedQuerySchedulerListener listener;
        
    public void init() 
@@ -75,18 +77,7 @@ public class AutomationServiceImpl /*implements AutomationService */
        scheduler.start();
        
        log.info("ANNIS AutomationService loaded.");
-    }
-   
-   /**
-    * API - test if the automated query, scheduling patterns etc. is legit
-    * 
-    * @return @class{AutomatedQueryResult} if everything is ok or an error... 
-    */
-   public Response test () 
-   {
-       throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-   }
-   
+    } 
    
    /**
     * API - get a list of all User's personal queries
@@ -95,7 +86,7 @@ public class AutomationServiceImpl /*implements AutomationService */
    @GET
    @Path("scheduledQueries")
    @Produces("application/xml")
-   public List<AutomatedQuery> getUserAutoQueries() 
+   public List<AutomatedQuery> getAutoQueries() 
    {
        Subject user = SecurityUtils.getSubject();
        user.checkPermission("schedule:read:user");
@@ -133,7 +124,7 @@ public class AutomationServiceImpl /*implements AutomationService */
        queryData.setDefaults(username);
        
        //security checks
-       if (queryData.getIsOwnerGroup())
+       if (queryData.getIsGroup())
        {
            subject.checkPermission("schedule:write:group:" + queryData.getOwner());
        } else
@@ -188,7 +179,7 @@ public class AutomationServiceImpl /*implements AutomationService */
        Subject subject = SecurityUtils.getSubject();
        String username = (String) subject.getPrincipal();
        
-       if (query.getIsOwnerGroup())
+       if (query.getIsGroup())
         {
             subject.checkPermission("schedule:writegroup:" + query.getOwner());
             if (!getConfManager().getGroups().containsKey(query.getOwner()))
@@ -210,7 +201,7 @@ public class AutomationServiceImpl /*implements AutomationService */
                         "Owner in query not the same as login name.").build();
             }
         }        
-        if (old.getIsOwnerGroup())
+        if (old.getIsGroup())
         {
             subject.checkPermission("schedule:writegroup:" + old.getOwner());
         }
@@ -244,7 +235,7 @@ public class AutomationServiceImpl /*implements AutomationService */
            
            Subject subject = SecurityUtils.getSubject();
            String username = (String) subject.getPrincipal();
-            if (toDelete.getIsOwnerGroup())
+            if (toDelete.getIsGroup())
             {
                 subject.checkPermission("schedule:writegroup:" + toDelete.getOwner());
             } else
@@ -292,6 +283,63 @@ public class AutomationServiceImpl /*implements AutomationService */
         return scheduler.getQueryResults(filters);
     }
    
+   @DELETE
+   @Path("results")
+   public Response deleteResults(
+   @QueryParam("dates") String exeDates)
+   {
+       requiredParameter(exeDates, "dates", "The execution dates of results that should be deleted");
+       
+       Subject subject = SecurityUtils.getSubject();
+       String username = (String) subject.getPrincipal();
+       
+       try
+       {
+           Set<String> dates = splitDatesFromRaw(exeDates);
+           List<AutomatedQueryResult> toDelete = new LinkedList<>(scheduler.getResults());
+           
+           //filter 
+           Iterator<AutomatedQueryResult> it = toDelete.iterator();
+           boolean notAuthorized = false;
+           
+           while (it.hasNext())
+           {
+               AutomatedQueryResult aqr = it.next();
+               
+               if (!dates.contains(aqr.getExecuted().toString()))
+               {
+                   it.remove();
+               }
+               else
+               {
+                    //security
+                    if (aqr.getQuery().getIsGroup())
+                    {
+                        if (!subject.isPermitted("schedule:deleteResult:" + aqr.getQuery().getOwner()))
+                        {
+                            it.remove();
+                            notAuthorized = true;
+                        }
+                    }
+                    else //personal query
+                    {
+                        if (!username.equals(aqr.getQuery().getOwner()))
+                        {
+                            it.remove();
+                            notAuthorized = true;
+                        }
+                    }
+               }
+           }
+           scheduler.deleteResults(toDelete);
+           return notAuthorized? Response.ok("Some Results haven't been deleted.").build() : Response.ok().build();
+       }
+       catch(IllegalArgumentException ex) 
+       {
+           throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).build());
+       }      
+   }
+   
    /**   
     * Deletes all AutomatedQueryResults whose "executed" date is older than the 
     * specified date. Only deletes results of AutomatedQueries whose ids are 
@@ -324,7 +372,7 @@ public class AutomationServiceImpl /*implements AutomationService */
             while (it.hasNext())
             {
                 AutomatedQuery q = scheduler.getQuery(it.next());
-                if(!q.getIsOwnerGroup())
+                if(!q.getIsGroup())
                 {
                     if(!username.equals(q.getOwner()))
                     {
@@ -350,8 +398,8 @@ public class AutomationServiceImpl /*implements AutomationService */
        }
        catch (IllegalArgumentException ex)
        {
-           throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).
-                   entity(ex).build());
+           log.error("Ids: ", ex);
+           throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).build());
        }       
    }
      
@@ -404,6 +452,11 @@ public class AutomationServiceImpl /*implements AutomationService */
           result.add(UUID.fromString(id));
       }
       return result;
+  }
+  
+  private Set<String> splitDatesFromRaw(String rawDates)
+  {
+      return new HashSet<>(Arrays.asList(rawDates.split(",")));
   }
   
   public void setListener(AutomatedQuerySchedulerListener listener)

@@ -39,6 +39,6 @@ public interface ResultsListView
     //public void activeQueryChanged(UUID newId);
     
     public void deleteResults(Collection<UUID> ids, DateTime date);
-    
+    public void deleteResults(Collection<DateTime> dates);
   }
 }
