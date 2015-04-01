@@ -59,7 +59,7 @@ public abstract class AutomatedQueryTask extends Task implements Serializable {
         switch (query.getType()) 
         {
             case FIND : return new AutomatedFindQueryTask(query);
-            case FREQUENCY : return new AutomatedFrequencyQueryTask(query);
+        //    case FREQUENCY : return new AutomatedFrequencyQueryTask(query);
             case COUNT :
             default: return new AutomatedCountQueryTask(query);
        }

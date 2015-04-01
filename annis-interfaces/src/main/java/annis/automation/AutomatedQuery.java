@@ -310,6 +310,6 @@ public class AutomatedQuery implements Serializable
     
     public enum Type 
     {
-      COUNT, FIND, FREQUENCY
+      COUNT, FIND //, FREQUENCY
     }
 }
